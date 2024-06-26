@@ -1,0 +1,62 @@
+# Just a very rough list of features I'd like to have, in no particular order:
+
+- channel strip plugin slots space thing should be smaller at start and grow
+- split engine into its own process
+
+- split (one?) plugin into its own process:
+  - host has to listen for filesystem changes to restart the process
+  - process links to pretty much nothing besides the CLAP api: no rtaudio, no rtmidi, just:
+      - a shared memory block for the audio buffers
+      - some way of telling the host about parameters info
+      -             "                      plugin metadata
+      -             "                      anything else
+      - we know the way:
+        - macOS: mach port messages
+        - linux: eventfd
+        - windows: CreateEvent
+      - display the native GUI with CHOC or a home-grown abstraction
+  - maybe make a clap extensions: "string parameters" so we can tell from the host
+      to the plugin a path for it to load
+
+- the whole attempt at unloading plugins didn't work, clean up the leftover code
+- clear all warnings
+- setup ClapWorkbenchSDK for linux and windows
+- move as much javascript to c++ as possible
+- keyboard to midi notes
+- play/stop
+- select audio interface
+- mute input
+- maybe gain+pan could be a plugin?
+- gain clipping should mute the output, not set it to 0.0 volume
+- gain meters
+- have lots of channel strips
+- open native guis on a panel beside a channelstrip, kinda like RME's TotalMix
+- unit tests
+- how to end2end test?
+- detach AudioEngine from RtAudio/RtMidi
+- custom plugin slot ui's
+- use tracktion graph
+- QML hot reloading
+- don't use Qt bindings on parameter knobs
+- crash when unload() is called and somewhere the plugin is used
+- atomic bitset for plugin status
+- atomic bitset for engine status
+- PluginLibrary should have its own map of loaded libraries, or
+  PluginLibrary and PluginManager should merge
+- pretty sure we should use a single PluginHost instead of one per plugin
+- don't use the clap c++ wrappers
+- close button on floating window
+- scan plugins in separate process
+- update Readme, dependencies should be set up automatically
+- update screenshot, floating plugin windows don't have native titlebar anymore
+- no native titlebar on the main window because fuck it
+- I don't really like having all these "WindowContainer"s, guess I could instead make a borderless,
+  shadowless window for the embedded native gui that stays on top of the main window but doesn't
+  look separated from it
+
+
+DONE:
+- no titlebar on PluginBrowserWindow
+- non-native titlebar for floating plugin windows
+- how do point to the proper qml files - done: instantiate them from c++
+- fix PluginBrowserWindow disappearing
