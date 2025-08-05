@@ -17,3 +17,11 @@ function(setupDependencies version os arch)
 
     set(CMAKE_PREFIX_PATH "${deps_root_dir}/share;${deps_root_dir}/lib/cmake;${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
 endfunction()
+
+include(FetchContent)
+FetchContent_Declare(
+        choc
+        GIT_REPOSITORY https://github.com/Tracktion/Choc.git
+        GIT_TAG main
+)
+FetchContent_MakeAvailable(choc)

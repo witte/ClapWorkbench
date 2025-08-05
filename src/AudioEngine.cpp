@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QQuickView>
 #include <QTimer>
+#include "PluginProcessHost.h"
 
 
 AudioEngine* inst_ = nullptr;
@@ -241,7 +242,14 @@ void AudioEngine::load(PluginHost* plugin, const QString& path, const int plugin
 
     if (pluginToReload == nullptr)
     {
-        m_plugins.push_back(new PluginHost);
+        static int c = 0;
+        c++;
+        if (c == 1)
+            m_plugins.push_back(new PluginProcessHost);
+        else
+            m_plugins.push_back(new PluginHost);
+
+
         pluginToReload = m_plugins.back();
     }
 

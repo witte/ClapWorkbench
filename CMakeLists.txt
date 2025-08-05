@@ -14,6 +14,8 @@ find_package(RtMidi       CONFIG REQUIRED)
 find_package(clap         CONFIG REQUIRED)
 find_package(clap-helpers CONFIG REQUIRED)
 
+add_subdirectory(pluginProcess)
+
 qt_standard_project_setup(REQUIRES 6.9.1)
 
 qt_add_executable(${PROJECT_NAME}
@@ -32,6 +34,8 @@ qt_add_executable(${PROJECT_NAME}
         src/PluginManager.cpp
         src/PluginHost.h
         src/PluginHost.cpp
+        src/PluginProcessHost.h
+        src/PluginProcessHost.cpp
         src/AudioEngine.h
         src/AudioEngine.cpp
         src/Commands.h

@@ -4,27 +4,14 @@
 #include <clap/helpers/host.hh>
 #include <clap/helpers/plugin-proxy.hh>
 #include <clap/helpers/reducing-param-queue.hh>
-#include <QObject>
-#include <QQuickWindow>
+#include <choc/containers/choc_SingleReaderSingleWriterFIFO.h>
 #include "Utils.h"
-#include "ParameterModel.h"
 
+class State;
+class NativePluginGUI;
 
-class PluginQuickView;
-
-namespace Ocp
-{
-    Q_NAMESPACE
-    QML_ELEMENT
-
-    enum class GuiType
-    {
-        Generic,
-        Native,
-    };
-    Q_ENUM_NS(GuiType)
-}
-
+constexpr auto PluginHost_MH = clap::helpers::MisbehaviourHandler::Terminate;
+constexpr auto PluginHost_CL = clap::helpers::CheckingLevel::Maximal;
 
 using BaseHost = clap::helpers::Host<PluginHost_MH, PluginHost_CL>;
 extern template class clap::helpers::Host<PluginHost_MH, PluginHost_CL>;
@@ -32,21 +19,10 @@ extern template class clap::helpers::Host<PluginHost_MH, PluginHost_CL>;
 using PluginProxy = clap::helpers::PluginProxy<PluginHost_MH, PluginHost_CL>;
 extern template class clap::helpers::PluginProxy<PluginHost_MH, PluginHost_CL>;
 
-class PluginHost : public QObject, public BaseHost
+class PluginHost : public BaseHost
 {
-    Q_OBJECT
-    Q_PROPERTY(QString name READ name NOTIFY nameChanged)
-    Q_PROPERTY(ParameterModel* parameters READ parameters CONSTANT)
-    Q_PROPERTY(bool isByPassed READ isByPassed WRITE setIsByPassed NOTIFY isByPassedChanged)
-    Q_PROPERTY(bool hasNativeGUI READ hasNativeGUI NOTIFY hasNativeGUIChanged)
-    Q_PROPERTY(QSize guiSize READ guiSize NOTIFY guiSizeChanged)
-    Q_PROPERTY(bool isFloatingWindowOpen READ isFloatingWindowOpen WRITE setIsFloatingWindowOpen NOTIFY isFloatingWindowOpenChanged)
-    Q_PROPERTY(PluginQuickView* floatingWindow READ floatingWindow NOTIFY floatingWindowChanged)
-    QML_ELEMENT
-
-
   public:
-    explicit PluginHost(QObject* parent = nullptr);
+    explicit PluginHost(int id);
     ~PluginHost() override;
     PluginHost(PluginHost&) = delete;
     PluginHost(PluginHost&&) = delete;
@@ -56,101 +32,69 @@ class PluginHost : public QObject, public BaseHost
 
     [[nodiscard]] ocp::Status status() const noexcept { return m_status; }
 
-    [[nodiscard]] QString path() const noexcept { return m_pluginPath; }
+    [[nodiscard]] std::string_view path() const noexcept { return m_pluginPath; }
 
     [[nodiscard]] uint32_t index() const noexcept { return m_index; }
 
-    [[nodiscard]] QString name() const noexcept { return m_name; }
+    [[nodiscard]] std::string_view name() const noexcept { return m_name; }
 
     [[nodiscard]] uint32_t parameterCount() const;
-
-    [[nodiscard]] ParameterModel* parameters() const
-    {
-        return m_parameterModel.get();
-    }
 
     [[nodiscard]] bool isByPassed() const { return m_isByPassed; }
     void setIsByPassed(bool newValue);
 
-    [[nodiscard]] QSize guiSize() const;
-    [[nodiscard]] PluginQuickView* floatingWindow() const { return m_floatingWindow; }
-    void setFloatingWindow(PluginQuickView* window);
-
-    [[nodiscard]] bool isFloatingWindowOpen() const;
-    void setIsFloatingWindowOpen(bool value);
-
-    void setIsFloatingWindowVisible(bool value);
-
     [[nodiscard]] bool hasNativeGUI() const;
 
     void setPorts(int numInputs, float** inputs, int numOutputs, float** outputs);
-    virtual void activate(int32_t sample_rate, int32_t blockSize);
-    virtual void deactivate();
+    void activate(int32_t sample_rate, int32_t blockSize);
+    void deactivate();
 
     void startProcessing();
     void stopProcessing();
 
 
+    void addParameterChangeToFifo(clap_id id, double value);
     void setParamValue(clap_id id, double newValue);
+
+    void addNoteToFifo(int key, int velocity, bool isOn);
 
     void processNoteOn(int sampleOffset, int channel, int key, int velocity);
     void processNoteOff(int sampleOffset, int channel, int key, int velocity);
+    void processNoteRawMidi(int sampleOffset, int midiMessage);
     void processNoteRawMidi(int sampleOffset, const std::vector<unsigned char>& data);
-    virtual void process();
+    void process();
 
     [[nodiscard]] bool threadCheckIsMainThread() const noexcept override;
     [[nodiscard]] bool threadCheckIsAudioThread() const noexcept override;
 
+    void showNativeWindow();
+    void destroyNativeGuiWindow();
 
-  public slots:
-    bool hasWindow(const QQuickWindow* window) const;
-    void createGuiWindow(QQuickWindow* parentWindow);
-    void setParentWindow(QQuickWindow* parentWindow);
-    void destroyGuiWindow();
+    void loadPluginState(std::string_view stateAsBase64);
+    [[nodiscard]] std::string_view getState() const;
 
-    void loadPluginState(const QString& stateAsBase64);
-    [[nodiscard]] QString getState() const;
-
-
-  signals:
-    void hostedPluginChanged();
-    void nameChanged();
-    void parameterGestureBegan(clap_id id);
-    void parameterGestureEnded(clap_id id);
-    void parameterValueChanged(clap_id id, double value);
-    void isByPassedChanged();
-
-    void hasNativeGUIChanged();
-    void guiSizeChanged();
-    void isFloatingWindowOpenChanged();
-    void floatingWindowChanged();
-
-
-  private slots:
     void beginParameterGesture(clap_id id) const;
     void endParameterGesture(clap_id id) const;
 
+    std::unique_ptr<PluginProxy> m_plugin;
 
-  protected:
+  private:
     friend class PluginManager;
 
+    int m_id;
+
     uint32_t m_index = 0;
-    QString m_name;
-    QString m_pluginPath;
+    std::string m_name;
+    std::string m_pluginPath;
     std::filesystem::path m_pluginPathAsPath;
     std::atomic<ocp::Status> m_status = ocp::Status::Inactive;
 
-    bool m_isProcessing = false;
-    bool m_isNativeGuiOpen = false;
-    PluginQuickView* m_floatingWindow = nullptr;
-
-    std::unique_ptr<PluginProxy> m_plugin;
-
-    QQuickWindow* m_parentWindow = nullptr;
-    std::unique_ptr<ParameterModel> m_parameterModel;
+    std::unique_ptr<NativePluginGUI> m_nativePluginGUI;
 
     std::atomic_bool m_isByPassed = false;
 
+    choc::fifo::SingleReaderSingleWriterFIFO<std::pair<clap_id, double>> m_parameterChanges;
+    choc::fifo::SingleReaderSingleWriterFIFO<int> m_notesInt;
     clap_audio_buffer m_audioIn = {};
     clap_audio_buffer m_audioOut = {};
     clap::helpers::EventList m_evIn;
