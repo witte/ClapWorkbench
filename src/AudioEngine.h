@@ -1,9 +1,10 @@
 #pragma once
 #include <QObject>
-#include "PluginManager.h"
-#include "PluginHost.h"
 #include "Utils.h"
 #include "Utils/RecursiveFileSystemWatcher.h"
+#include "PluginManager.h"
+#include "PluginHost.h"
+#include "ChannelStrip.h"
 
 
 typedef unsigned int RtAudioStreamStatus;
@@ -39,7 +40,7 @@ class AudioEngine final : public QObject
 
     void load(QList<std::tuple<QString, int, QString>>&& plugins);
 
-    [[nodiscard]] QList<PluginHost*> plugins();
+    [[nodiscard]] QList<PluginHost*> plugins() const;
     void clearPluginsList();
 
     [[nodiscard]] bool isRunning() const;
@@ -92,7 +93,7 @@ class AudioEngine final : public QObject
 
     float* m_outputBuffer[2] = {nullptr, nullptr};
 
-    QList<PluginHost*> m_plugins;
+    ChannelStrip m_channelStrip;
 
     std::atomic<float> m_outputVolume = 0.0f;
 

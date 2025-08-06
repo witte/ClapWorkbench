@@ -17,6 +17,13 @@ find_package(clap-helpers CONFIG REQUIRED)
 qt_standard_project_setup(REQUIRES 6.9.1)
 
 qt_add_executable(${PROJECT_NAME}
+        src/Utils/RecursiveFileSystemWatcher.cpp
+        src/Utils/RecursiveFileSystemWatcher.h
+        src/PluginHost.h
+        src/PluginHost.cpp
+        src/Node.h
+        src/Node.cpp
+        src/ChannelStrip.cpp
         src/PluginLibrary.h
         src/PluginLibrary.cpp
         src/PluginInfo.h
@@ -26,12 +33,8 @@ qt_add_executable(${PROJECT_NAME}
         src/Utils.cpp
         src/ParameterModel.cpp
         src/ParameterModel.h
-        src/Utils/RecursiveFileSystemWatcher.cpp
-        src/Utils/RecursiveFileSystemWatcher.h
         src/PluginManager.h
         src/PluginManager.cpp
-        src/PluginHost.h
-        src/PluginHost.cpp
         src/AudioEngine.h
         src/AudioEngine.cpp
         src/Commands.h

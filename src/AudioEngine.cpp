@@ -34,27 +34,12 @@ AudioEngine::AudioEngine(QObject* parent)
             m_audio->closeStream();
         }
 
-        for (auto* plugin: m_plugins)
-            plugin->deactivate();
+        m_channelStrip.deactivate();
 
         m_audio.reset();
 
 
         emit isRunningChanged();
-    });
-
-    connect(&m_pluginWatcher, &RecursiveFileSystemWatcher::directoryChanged, &m_pluginWatcher, [this](const QString& path)
-    {
-        qDebug() << "directoryChanged:" << path;
-        for (auto* plugin : m_plugins)
-        {
-            if (!path.startsWith(plugin->path()))
-                continue;
-
-            qDebug() << "reloading:" << plugin->path();
-            m_pluginManager->unload(*plugin, true);
-            load(plugin, plugin->path(), static_cast<int>(plugin->index()));
-        }
     });
 
     m_undoStack = new QUndoStack(this);
@@ -90,17 +75,14 @@ void AudioEngine::stop()
     m_status = ocp::Status::StopRequested;
 }
 
-QList<PluginHost*> AudioEngine::plugins()
+QList<PluginHost*> AudioEngine::plugins() const
 {
-    return m_plugins;
+    return m_channelStrip.nodes;
 }
 
 void AudioEngine::clearPluginsList()
 {
-    for (const auto* pluginHost : m_plugins)
-        delete pluginHost;
-
-    m_plugins.clear();
+    m_channelStrip.clearNodes();
     emit pluginsChanged();
 }
 
@@ -162,11 +144,8 @@ void AudioEngine::start()
         m_outputBuffer[1][i] = 0.0f;
     }
 
-    for (auto* plugin : m_plugins)
-    {
-        plugin->setPorts(2, m_outputBuffer, 2, m_outputBuffer);
-        plugin->activate(m_sampleRate, static_cast<int>(m_bufferSize));
-    }
+    m_channelStrip.setPorts(2, m_outputBuffer, 2, m_outputBuffer);
+    m_channelStrip.activate(m_sampleRate, static_cast<int>(m_bufferSize));
 
     m_audio->startStream();
 
@@ -182,7 +161,7 @@ void AudioEngine::pause()
 
 void AudioEngine::unload(PluginHost* pluginToUnload)
 {
-    const auto indexOfPluginToRemove = m_plugins.indexOf(pluginToUnload);
+    const auto indexOfPluginToRemove = m_channelStrip.nodes.indexOf(pluginToUnload);
     if (indexOfPluginToRemove < 0)
         return;
 
@@ -191,7 +170,7 @@ void AudioEngine::unload(PluginHost* pluginToUnload)
 
     QTimer::singleShot(200, this, [this, indexOfPluginToRemove, oldStatus, pluginToUnload]()
     {
-        m_plugins.remove(indexOfPluginToRemove);
+        m_channelStrip.nodes.remove(indexOfPluginToRemove);
 
         emit pluginHostRemoved(pluginToUnload);
         emit pluginsChanged();
@@ -212,8 +191,8 @@ void AudioEngine::reorder(int from, int to)
 
     auto reorderPlugin = [this, oldStatus, from, to]() -> void
     {
-        const auto element = m_plugins.takeAt(from);
-        m_plugins.insert(to, element);
+        const auto element = m_channelStrip.nodes.takeAt(from);
+        m_channelStrip.nodes.insert(to, element);
 
         emit pluginsChanged();
 
@@ -241,8 +220,8 @@ void AudioEngine::load(PluginHost* plugin, const QString& path, const int plugin
 
     if (pluginToReload == nullptr)
     {
-        m_plugins.push_back(new PluginHost);
-        pluginToReload = m_plugins.back();
+        m_channelStrip.nodes.push_back(new PluginHost);
+        pluginToReload = m_channelStrip.nodes.back();
     }
 
     m_pluginManager->load(*pluginToReload, path, pluginIndex);
@@ -273,7 +252,7 @@ void AudioEngine::load(QList<std::tuple<QString, int, QString>>&& plugins)
 
         plugin->loadPluginState(stateData);
 
-        m_plugins.push_back(plugin);
+        m_channelStrip.nodes.push_back(plugin);
         m_pluginWatcher.addPath(path);
 
         emit plugin->nameChanged();
@@ -347,8 +326,7 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
 
     if (status == ocp::Status::StopRequested)
     {
-        for (auto* plugin : engine->m_plugins)
-            plugin->stopProcessing();
+        engine->m_channelStrip.stopProcessing();
 
         engine->m_status = ocp::Status::Stopping;
         emit engine->stopRequested();
@@ -358,11 +336,7 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
 
     if (status == ocp::Status::Starting)
     {
-        for (auto* plugin : engine->m_plugins)
-        {
-            if (plugin->status() >= ocp::Status::OnHold)
-                plugin->startProcessing();
-        }
+        engine->m_channelStrip.startProcessing();
 
         engine->m_status = ocp::Status::Running;
     }
@@ -390,13 +364,11 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
 
             const int32_t sampleOffset = static_cast<int>(frameCount) - static_cast<int>(deltaSample);
 
-            for (auto* plugin : engine->m_plugins)
-                plugin->processNoteRawMidi(sampleOffset, midiBuffer);
+            engine->m_channelStrip.processNoteRawMidi(sampleOffset, midiBuffer);
         }
     }
 
-    for (auto* plugin : engine->m_plugins)
-        plugin->process();
+    engine->m_channelStrip.process();
 
 
     static int warnVolumeError = 1;

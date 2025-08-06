@@ -18,6 +18,13 @@
   - maybe make a clap extensions: "string parameters" so we can tell from the host
       to the plugin a path for it to load
 
+- un-Qt-fy the AudioEngine
+- maybe Nodes could _always_ be CLAP plugins, even if internal
+- maybe split the idea of "Node" and a "NodeGroup", that would hold only a bunch of nodes and their connections,
+    because in the end all the nodes should be flattened in the graph anyways, so I'm not sure if we can
+    really have a composite pattern here...
+- Parameter QML component, in c++, that holds a clap_id and a value and sends changes to the engine
+    (instead of using the ParameterModel)
 - the whole attempt at unloading plugins didn't work, clean up the leftover code
 - clear all warnings
 - setup ClapWorkbenchSDK for linux and windows
