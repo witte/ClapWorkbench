@@ -68,10 +68,7 @@ WindowContainer {
         {
             id: faderBpm
 
-            // anchors.top: parent.top
             anchors.right: faderOutputVolume.left
-            // anchors.bottom: parent.bottom
-            // anchors.margins: 4
 
             width: 162
             height: control.height
@@ -89,10 +86,7 @@ WindowContainer {
         {
             id: faderOutputVolume
 
-            // anchors.top: parent.top
-            anchors.right: parent.right
-            // anchors.bottom: parent.bottom
-            // anchors.margins: 4
+            anchors.right: isByPassedBtn.left
 
             width: 62
             height: control.height
@@ -104,6 +98,28 @@ WindowContainer {
             onPositionChanged: audioEngine.outputVolume = value
 
             orientation: Qt.Horizontal
+        }
+
+        O.LightButton
+        {
+            id: isByPassedBtn
+
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.margins: 3
+
+            bgHoveredColor: "#2f3338"
+            bgPressedColor: "#262A2E"
+
+            textColor: "#dddddd"
+            textPressedColor: "#bbbbbb"
+
+            font.pointSize: 14
+
+            text: "M"
+
+            checked: audioEngine.isByPassed
+            onClicked: audioEngine.isByPassed = !audioEngine.isByPassed
         }
     }
 }

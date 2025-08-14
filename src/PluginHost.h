@@ -38,7 +38,6 @@ class PluginHost : public Node, public BaseHost
 {
     Q_OBJECT
     Q_PROPERTY(ParameterModel* parameters READ parameters CONSTANT)
-    Q_PROPERTY(bool isByPassed READ isByPassed WRITE setIsByPassed NOTIFY isByPassedChanged)
     Q_PROPERTY(bool hasNativeGUI READ hasNativeGUI NOTIFY hasNativeGUIChanged)
     Q_PROPERTY(QSize guiSize READ guiSize NOTIFY guiSizeChanged)
     Q_PROPERTY(bool isFloatingWindowOpen READ isFloatingWindowOpen WRITE setIsFloatingWindowOpen NOTIFY isFloatingWindowOpenChanged)
@@ -65,9 +64,6 @@ class PluginHost : public Node, public BaseHost
     {
         return m_parameterModel.get();
     }
-
-    [[nodiscard]] bool isByPassed() const;
-    void setIsByPassed(bool newValue);
 
     [[nodiscard]] QSize guiSize() const;
     [[nodiscard]] PluginQuickView* floatingWindow() const { return m_floatingWindow; }
@@ -108,6 +104,7 @@ class PluginHost : public Node, public BaseHost
 
     void loadPluginState(const QString& stateAsBase64);
     [[nodiscard]] QJsonObject getState() const override;
+    void loadState(const QJsonObject& stateToLoad) const override;
 
 
   signals:
@@ -115,7 +112,6 @@ class PluginHost : public Node, public BaseHost
     void parameterGestureBegan(clap_id id);
     void parameterGestureEnded(clap_id id);
     void parameterValueChanged(clap_id id, double value);
-    void isByPassedChanged();
 
     void hasNativeGUIChanged();
     void guiSizeChanged();
@@ -150,14 +146,10 @@ class PluginHost : public Node, public BaseHost
     clap_audio_buffer m_audioOut = {};
     int32_t m_blockSize = 0;
 
-    // double m_bpm = 120.0;
     double samplesPerBeat = 60.0 / 120.0;
 
     uint64_t current_sample = 0;
-    // uint64_t bpmAdjustmentSample = 0;
-    // uint64_t bpmAdjustmentBeat = 0;
     double song_pos_beats = 0.0;
-
 
 
     void requestRestart() noexcept override {};

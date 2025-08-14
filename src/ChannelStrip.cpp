@@ -2,6 +2,7 @@
 #include "PluginManager.h"
 #include "QJsonArray"
 
+
 ChannelStrip::ChannelStrip(QObject* parent) : Node(parent)
 {
     m_outputBuffer[0] = static_cast<float*>(std::calloc(1, m_bufferSize * 4));
@@ -78,14 +79,9 @@ void ChannelStrip::processNoteRawMidi(const int sampleOffset, const std::vector<
 
 void ChannelStrip::process()
 {
-    if (status.load().status == S::Inactive)
+    auto curStatus = status.load();
+    if (curStatus.status == S::Inactive)
         return;
-
-    for (unsigned int i = 0; i < m_bufferSize; ++i)
-    {
-        m_outputBuffer[0][i] = 0.0f;
-        m_outputBuffer[1][i] = 0.0f;
-    }
 
     const clap::helpers::EventList* lastPluginEventsOut = nullptr;
     for (auto* plugin : nodes)
@@ -110,6 +106,13 @@ void ChannelStrip::process()
             lastPluginEventsOut = nullptr;
     }
 
+    if (curStatus.isBypassed)
+    {
+        std::memset(m_outputBuffer[0], 0, m_bufferSize * sizeof(float));
+        std::memset(m_outputBuffer[1], 0, m_bufferSize * sizeof(float));
+
+        return;
+    }
 
     const auto outputVolume = m_outputVolume.load();
 
@@ -133,7 +136,14 @@ void ChannelStrip::process()
                 warnVolumeError = 24000;
             }
 
-            setOutputVolume(0.0f);
+            std::memset(m_outputBuffer[0], 0, m_bufferSize * sizeof(float));
+            std::memset(m_outputBuffer[1], 0, m_bufferSize * sizeof(float));
+
+            curStatus.isBypassed = true;
+            status.store(curStatus);
+            emit isByPassedChanged();
+
+            break;
         }
     }
 }
@@ -153,6 +163,11 @@ QJsonObject ChannelStrip::getState() const
 
     state["nodes"] = jsonArray;
     return state;
+}
+
+void ChannelStrip::loadState(const QJsonObject& stateToLoad) const
+{
+
 }
 
 QList<Node*> ChannelStrip::plugins() const
@@ -181,23 +196,6 @@ void ChannelStrip::setOutputVolume(const double newOutputVolume)
     m_outputVolume = newOutputVolume;
 
     emit outputVolumeChanged();
-}
-
-bool ChannelStrip::isMuted() const
-{
-    return status.load().isBypassed;
-}
-
-void ChannelStrip::setIsMuted(const bool newIsMuted)
-{
-    auto status_ = status.load();
-    if (newIsMuted == status_.isBypassed)
-        return;
-
-    status_.isBypassed = newIsMuted;
-    status.store(status_);
-
-    emit isMutedChanged();
 }
 
 void ChannelStrip::load(PluginHost* plugin, const QString& path, const int pluginIndex)

@@ -74,22 +74,6 @@ uint32_t PluginHost::parameterCount() const
     return m_plugin->paramsCount();
 }
 
-bool PluginHost::isByPassed() const
-{
-    return status.load().isBypassed;
-}
-
-void PluginHost::setIsByPassed(const bool newValue)
-{
-    auto status_ = status.load();
-    if (newValue == status_.isBypassed)
-        return;
-
-    status_.isBypassed = newValue;
-    status.store(status_);
-    emit isByPassedChanged();
-}
-
 QSize PluginHost::guiSize() const
 {
     if (!m_plugin || !m_plugin->canUseGui() || !m_isNativeGuiOpen)
@@ -610,6 +594,8 @@ QJsonObject PluginHost::getState() const
 
     return pluginStateJson;
 }
+
+void PluginHost::loadState(const QJsonObject& stateToLoad) const {}
 
 void PluginHost::beginParameterGesture(const clap_id id) const
 {

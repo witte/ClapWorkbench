@@ -9,7 +9,7 @@ Rectangle
 {
     id: control
 
-    property ChannelStrip channelStrip
+    property QtObject channelStrip
     property int insertHeight: 20
 
     width: 151
@@ -99,6 +99,7 @@ Rectangle
     {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
+        anchors.margins: 3
 
         bgHoveredColor: "#2f3338"
         bgPressedColor: "#262A2E"
@@ -110,7 +111,7 @@ Rectangle
 
         text: "M"
 
-        checked: channelStrip.isMuted
-        onClicked: channelStrip.isMuted = !channelStrip.isMuted
+        checked: channelStrip.isByPassed
+        onClicked: channelStrip.isByPassed = !channelStrip.isByPassed
     }
 }

@@ -319,6 +319,22 @@ void AudioEngine::setOutputVolume(const float newOutputVolume)
     emit outputVolumeChanged();
 }
 
+bool AudioEngine::isByPassed() const
+{
+    return m_status.load().isBypassed;
+}
+
+void AudioEngine::setIsByPassed(const bool newValue)
+{
+    auto status_ = m_status.load();
+    if (newValue == status_.isBypassed)
+        return;
+
+    status_.isBypassed = newValue;
+    m_status.store(status_);
+    emit isByPassedChanged();
+}
+
 double AudioEngine::bpm() const { return m_bpm; }
 
 void AudioEngine::setBpm(const double newBpm)
@@ -368,7 +384,7 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
 
     auto* out = static_cast<float*>(outputBuffer);
 
-    if (status.status == S::Stopped)
+    if (status.status == S::Stopped || status.isBypassed)
     {
         for (unsigned int i = 0; i < frameCount; ++i)
         {
@@ -440,14 +456,13 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
     }
 
     static int warnVolumeError = 1;
-    auto outputVolume = engine->m_outputVolume.load();
+    const auto outputVolume = engine->m_outputVolume.load();
 
     for (unsigned int i = 0; i < frameCount; ++i)
     {
         --warnVolumeError;
 
         if (engine->m_outputBuffer[0][i] > 1.0f || engine->m_outputBuffer[1][i] > 1.0f)
-            //  || engine->m_outputBufferD[0][i] > 1.0f || engine->m_outputBufferD[1][i] > 1.0f)
         {
             if (warnVolumeError <= 0)
             {
@@ -455,16 +470,19 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
                 warnVolumeError = 24000;
             }
 
-            engine->setOutputVolume(0.0f);
-            outputVolume = 0.0f;
+            std::memset(engine->m_outputBuffer[0], 0, frameCount * sizeof(float));
+            std::memset(engine->m_outputBuffer[1], 0, frameCount * sizeof(float));
+            std::memset(out, 0, frameCount * sizeof(float) * 2);
+
+            status.isBypassed = true;
+            engine->m_status.store(status);
+            emit engine->isByPassedChanged();
+
+            break;
         }
 
         out[2 * i]     = engine->m_outputBuffer[0][i] * outputVolume;
         out[2 * i + 1] = engine->m_outputBuffer[1][i] * outputVolume;
-
-        // TODO
-        // out[2 * i]     = engine->m_outputBuffer[0][i] * outputVolume;
-        // out[2 * i + 1] = engine->m_outputBuffer[1][i] * outputVolume;
     }
 
     return 0;

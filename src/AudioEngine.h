@@ -22,6 +22,7 @@ class AudioEngine final : public QObject
     Q_PROPERTY(QList<ChannelStrip*> channelStrips READ channelStrips NOTIFY channelStripsChanged)
     Q_PROPERTY(double bpm READ bpm WRITE setBpm NOTIFY bpmChanged)
     Q_PROPERTY(float outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
+    Q_PROPERTY(bool isByPassed READ isByPassed WRITE setIsByPassed NOTIFY isByPassedChanged)
 
 
   public:
@@ -48,6 +49,9 @@ class AudioEngine final : public QObject
     [[nodiscard]] float outputVolume() const;
     void setOutputVolume(float newOutputVolume);
 
+    [[nodiscard]] bool isByPassed() const;
+    void setIsByPassed(bool newValue);
+
     [[nodiscard]] double bpm() const;
     void setBpm(double newBpm);
 
@@ -63,6 +67,7 @@ class AudioEngine final : public QObject
 
 
   signals:
+    void isByPassedChanged();
     void channelStripsChanged();
 
     void pluginsChanged();

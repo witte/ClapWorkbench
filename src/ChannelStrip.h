@@ -9,8 +9,6 @@ class ChannelStrip : public Node
     Q_OBJECT
     Q_PROPERTY(QList<Node*> plugins READ plugins NOTIFY pluginsChanged)
     Q_PROPERTY(double outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
-    Q_PROPERTY(bool isMuted READ isMuted WRITE setIsMuted NOTIFY isMutedChanged)
-    QML_ELEMENT
 
   public:
     explicit ChannelStrip(QObject* parent = nullptr);
@@ -27,6 +25,7 @@ class ChannelStrip : public Node
     void process() override;
 
     [[nodiscard]] QJsonObject getState() const override;
+    void loadState(const QJsonObject& stateToLoad) const override;
 
     [[nodiscard]] QList<Node*> plugins() const;
 
@@ -35,9 +34,6 @@ class ChannelStrip : public Node
     [[nodiscard]] double outputVolume() const;
     void setOutputVolume(double newOutputVolume);
 
-    [[nodiscard]] bool isMuted() const;
-    void setIsMuted(bool newIsMuted);
-
 
   signals:
     void pluginsChanged();
@@ -45,7 +41,6 @@ class ChannelStrip : public Node
     void pluginHostRemoved(PluginHost* pluginHost);
 
     void outputVolumeChanged();
-    void isMutedChanged();
 
 
   public slots:

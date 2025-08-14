@@ -30,6 +30,7 @@ class Node : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+    Q_PROPERTY(bool isByPassed READ isByPassed WRITE setIsByPassed NOTIFY isByPassedChanged)
 
   public:
     explicit Node(QObject* parent = nullptr);
@@ -37,6 +38,9 @@ class Node : public QObject
 
     [[nodiscard]] QString name() const;
     void setName(const QString& name);
+
+    [[nodiscard]] bool isByPassed() const;
+    void setIsByPassed(bool newValue);
 
     virtual void setPorts(int numInputs, float** inputs, int numOutputs, float** outputs) = 0;
     virtual void activate(std::int32_t sampleRate, std::int32_t blockSize) = 0;
@@ -49,6 +53,7 @@ class Node : public QObject
     virtual void process() = 0;
 
     virtual QJsonObject getState() const = 0;
+    virtual void loadState(const QJsonObject& stateToLoad) const = 0;
 
     std::atomic<Status> status;
     clap_process m_process{};
@@ -62,6 +67,7 @@ class Node : public QObject
 
   signals:
     void nameChanged();
+    void isByPassedChanged();
 
 
   protected:
