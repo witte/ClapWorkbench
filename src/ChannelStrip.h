@@ -9,6 +9,7 @@ class ChannelStrip : public Node
     Q_OBJECT
     Q_PROPERTY(QList<Node*> plugins READ plugins NOTIFY pluginsChanged)
     Q_PROPERTY(double outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
+    Q_PROPERTY(bool isMuted READ isMuted WRITE setIsMuted NOTIFY isMutedChanged)
     QML_ELEMENT
 
   public:
@@ -34,6 +35,9 @@ class ChannelStrip : public Node
     [[nodiscard]] double outputVolume() const;
     void setOutputVolume(double newOutputVolume);
 
+    [[nodiscard]] bool isMuted() const;
+    void setIsMuted(bool newIsMuted);
+
 
   signals:
     void pluginsChanged();
@@ -41,6 +45,7 @@ class ChannelStrip : public Node
     void pluginHostRemoved(PluginHost* pluginHost);
 
     void outputVolumeChanged();
+    void isMutedChanged();
 
 
   public slots:
@@ -49,7 +54,6 @@ class ChannelStrip : public Node
 
 
   public:
-    std::atomic<ocp::Status> m_status = ocp::Status::Running;
     std::atomic<double> m_outputVolume = 0.7f;
 
     unsigned int m_bufferSize = 4096;

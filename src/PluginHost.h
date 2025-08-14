@@ -66,7 +66,7 @@ class PluginHost : public Node, public BaseHost
         return m_parameterModel.get();
     }
 
-    [[nodiscard]] bool isByPassed() const { return m_isByPassed; }
+    [[nodiscard]] bool isByPassed() const;
     void setIsByPassed(bool newValue);
 
     [[nodiscard]] QSize guiSize() const;
@@ -145,8 +145,6 @@ class PluginHost : public Node, public BaseHost
 
     QQuickWindow* m_parentWindow = nullptr;
     std::unique_ptr<ParameterModel> m_parameterModel;
-
-    std::atomic_bool m_isByPassed = false;
 
     clap_audio_buffer m_audioIn = {};
     clap_audio_buffer m_audioOut = {};

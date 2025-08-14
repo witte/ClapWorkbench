@@ -3,14 +3,12 @@
 
 -     clap::helpers::EventList m_evIn;
       clap::helpers::EventList m_evOut;
-    is wrong, "clap::helpers::EventList" already has in and out eventlists
+    is wrong, "clap::helpers::EventList" already has in and out event lists
 
 - Node could have its implementation of that "string parameter" thing,
     easier to get it to work for now
 - save bpm in session
-- channelStrip volume is a parameter of it
-- save channelstrip volume in session
-- add channelstrip pan, mute, solo
+- add channelStrip pan, mute, solo
 
 
 - classes that inherit Node can behave in specific ways by doing things when child
@@ -63,10 +61,10 @@
 - how to end2end test?
 - detach AudioEngine from RtAudio/RtMidi
 - custom plugin slot ui's
-- use tracktion graph
+- use tracktion graph?
 - QML hot reloading
 - don't use Qt bindings on parameter knobs
-- crash when unload() is called and somewhere the plugin is used
+- don't crash when unload() is called and somewhere the plugin is used
 - atomic bitset for plugin status
 - atomic bitset for engine status
 - PluginLibrary should have its own map of loaded libraries, or
@@ -84,6 +82,8 @@
 
 
 DONE:
+- channelStrip volume is a parameter of it
+- save channelStrip volume in session
 - no titlebar on PluginBrowserWindow
 - non-native titlebar for floating plugin windows
 - how do point to the proper qml files - done: instantiate them from c++

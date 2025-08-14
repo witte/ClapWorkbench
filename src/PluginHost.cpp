@@ -74,12 +74,19 @@ uint32_t PluginHost::parameterCount() const
     return m_plugin->paramsCount();
 }
 
+bool PluginHost::isByPassed() const
+{
+    return status.load().isBypassed;
+}
+
 void PluginHost::setIsByPassed(const bool newValue)
 {
-    if (newValue == m_isByPassed)
+    auto status_ = status.load();
+    if (newValue == status_.isBypassed)
         return;
 
-    m_isByPassed = newValue;
+    status_.isBypassed = newValue;
+    status.store(status_);
     emit isByPassedChanged();
 }
 
@@ -174,13 +181,15 @@ void PluginHost::setPorts(const int numInputs, float** inputs, const int numOutp
 
 void PluginHost::activate(const int32_t sample_rate, const int32_t blockSize)
 {
-    if (!m_plugin || status >= ocp::Status::OnHold)
+    auto curStatus = status.load();
+    if (!m_plugin || curStatus.status >= S::Stopped)
         return;
 
     if (!m_plugin->activate(sample_rate, blockSize, blockSize))
     {
         qWarning() << "Could not activate plugin:" << m_name;
-        status = ocp::Status::OnError;
+        curStatus.status = S::OnError;
+        status.store(curStatus);
 
         return;
     }
@@ -188,15 +197,18 @@ void PluginHost::activate(const int32_t sample_rate, const int32_t blockSize)
     m_sampleRate = sample_rate;
     m_sampleStep = 1.0 / m_sampleRate;
     m_blockSize = blockSize;
-    status = ocp::Status::Starting;
+    curStatus.status = S::Stopped;
+    status.store(curStatus);
 }
 
 void PluginHost::deactivate()
 {
-    if (!m_plugin || status < ocp::Status::OnHold)
+    auto curStatus = status.load();
+    if (!m_plugin || curStatus.status < S::Stopped)
         return;
 
-    status = ocp::Status::Inactive;
+    curStatus.status = S::Inactive;
+    status.store(curStatus);
 
     m_blockSize = 0;
     m_plugin->deactivate();
@@ -212,7 +224,9 @@ void PluginHost::startProcessing()
 
     m_plugin->startProcessing();
 
-    status = ocp::Status::Running;
+    auto curStatus = status.load();
+    curStatus.status = S::Running;
+    status.store(curStatus);
 }
 
 void PluginHost::stopProcessing()
@@ -220,7 +234,9 @@ void PluginHost::stopProcessing()
     if (!m_plugin)
         return;
 
-    status = ocp::Status::OnHold;
+    auto curStatus = status.load();
+    curStatus.status = S::Stopped;
+    status.store(curStatus);
 
     m_plugin->stopProcessing();
     m_isProcessing = false;
@@ -320,11 +336,12 @@ void PluginHost::process()
     if (!m_plugin || m_blockSize == 0)
         return;
 
-    const auto status_ = status.load();
-    if (status_ == ocp::Status::Starting)
+    const auto curStatus = status.load();
+    if (curStatus.status == S::Starting)
+    {
         startProcessing();
-
-    else if (status_ != ocp::Status::Running || m_isByPassed)
+    }
+    else if (curStatus.status != S::Running || curStatus.isBypassed)
     {
         m_evIn.clear();
         return;
@@ -344,9 +361,7 @@ void PluginHost::process()
     samplesPerBeat = m_sampleRate * (60.0 / AudioEngine::instance()->bpm());
 
     const double somethingElse = m_blockSize / samplesPerBeat;
-    song_pos_beats += somethingElse;
     m_process.frames_count = m_blockSize;
-    current_sample += m_blockSize;
 
     transport_event.song_pos_beats = static_cast<clap_beattime>(std::round(CLAP_BEATTIME_FACTOR * song_pos_beats));
     transport_event.song_pos_seconds = current_sample / m_sampleRate;
@@ -368,6 +383,9 @@ void PluginHost::process()
 
     const auto clapStatus = m_plugin->process(&m_process);
     (void)clapStatus;
+
+    song_pos_beats += somethingElse;
+    current_sample += m_blockSize;
 
     for (size_t i = 0; i < m_evOut.size(); ++i)
     {
@@ -558,6 +576,7 @@ QJsonObject PluginHost::getState() const
     pluginStateJson["path"] = path();
     pluginStateJson["index"] = static_cast<int>(index());
     pluginStateJson["name"] = name();
+    pluginStateJson["isBypassed"] = status.load().isBypassed;
 
     if (!m_plugin->canUseState())
     {

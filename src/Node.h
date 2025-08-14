@@ -5,21 +5,25 @@
 #include <qqmlintegration.h>
 #include <vector>
 
-namespace ocp
-{
 
-enum class Status
+enum class S : std::uint8_t
 {
     Inactive,
     OnError,
-    OnHold,
+    Stopped,
     Starting,
     Running,
     StopRequested,
-    Stopping
+    Stopping,
 };
 
-}
+struct Status
+{
+    S status = S::Inactive;
+
+    bool isBypassed = false;
+    bool isProcessed = false;
+};
 
 
 class Node : public QObject
@@ -46,7 +50,7 @@ class Node : public QObject
 
     virtual QJsonObject getState() const = 0;
 
-    std::atomic<ocp::Status> status = ocp::Status::Inactive;
+    std::atomic<Status> status;
     clap_process m_process{};
     clap::helpers::EventList m_evIn;
     clap::helpers::EventList m_evOut;

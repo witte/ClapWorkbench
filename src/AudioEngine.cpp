@@ -27,7 +27,9 @@ AudioEngine::AudioEngine(QObject* parent) : QObject{parent}
     connect(this, &AudioEngine::stopRequested, this, [this]()
     {
         qDebug() << "AudioEngine::stopRequested:";
-        m_status = ocp::Status::OnHold;
+        auto curStatus = m_status.load();
+        curStatus.status = S::Stopped;
+        m_status.store(curStatus);
 
         if (m_audio->isStreamOpen())
         {
@@ -73,7 +75,9 @@ void AudioEngine::stop()
     if (!m_audio)
         return;
 
-    m_status = ocp::Status::StopRequested;
+    auto curStatus = m_status.load();
+    curStatus.status = S::StopRequested;
+    m_status.store(curStatus);
 }
 
 void AudioEngine::loadSession(const QString& path)
@@ -99,6 +103,10 @@ void AudioEngine::loadSession(const QString& path)
 
         addNewChannelStrip();
         const auto& channelStrip = m_channelStrips.back();
+
+        Status status;
+        status.isBypassed = jsChannel["isBypassed"].toBool();
+        channelStrip->status.store(status);
         channelStrip->setOutputVolume(jsChannel["outputVolume"].toDouble());
 
         for (const auto plugins = jsChannel["nodes"].toArray(); const auto& jsPluginRef : plugins)
@@ -112,6 +120,10 @@ void AudioEngine::loadSession(const QString& path)
             auto* plugin = new PluginHost;
             PluginManager::instance()->load(*plugin, pluginPath, pluginIndex);
             plugin->loadPluginState(pluginStateData);
+
+            Status pluginStatus;
+            pluginStatus.isBypassed = jsPlugin["isBypassed"].toBool();
+            plugin->status.store(pluginStatus);
 
             channelStrip->nodes.push_back(plugin);
         }
@@ -140,7 +152,9 @@ void AudioEngine::start()
     if (!m_audio)
     {
         std::cout << "no audio :(" << std::endl;
-        m_status = ocp::Status::Inactive;
+        auto curStatus = m_status.load();
+        curStatus.status = S::Inactive;
+        m_status.store(curStatus);
         emit isRunningChanged();
 
         return;
@@ -200,24 +214,32 @@ void AudioEngine::start()
 
     m_audio->startStream();
 
-    m_status = ocp::Status::Starting;
+    auto curStatus = m_status.load();
+    curStatus.status = S::Starting;
+    m_status.store(curStatus);
     emit isRunningChanged();
 }
 
 void AudioEngine::pause()
 {
-    if (m_status > ocp::Status::OnHold)
-        m_status = ocp::Status::OnHold;
+    if (auto curStatus = m_status.load(); curStatus.status > S::Stopped)
+    {
+        curStatus.status = S::Stopped;
+        m_status.store(curStatus);
+    }
 }
 
 void AudioEngine::addNewChannelStrip()
 {
-    const auto oldStatus = m_status.load();
-    m_status = ocp::Status::OnHold;
+    auto oldStatus = m_status.load();
+    const auto curStatusStatus = oldStatus.status;
+    oldStatus.status = S::Stopped;
+    m_status.store(oldStatus);
 
     m_channelStrips.append(new ChannelStrip);
 
-    m_status = oldStatus;
+    oldStatus.status = curStatusStatus;
+    m_status.store(oldStatus);
     emit channelStripsChanged();
 }
 
@@ -240,7 +262,9 @@ void AudioEngine::unload(PluginHost* pluginToUnload)
 
 
     const auto oldStatus = m_status.load();
-    m_status = ocp::Status::OnHold;
+    auto curStatus = m_status.load();
+    curStatus.status = S::Stopped;
+    m_status.store(curStatus);
 
     channelStripToChange->nodes.remove(indexOfPluginToRemove);
 
@@ -258,21 +282,23 @@ void AudioEngine::unload(PluginHost* pluginToUnload)
 
 bool AudioEngine::isRunning() const
 {
-    return m_status > ocp::Status::OnHold;
+    return m_status.load().status > S::Stopped;
 }
 
 void AudioEngine::setIsRunning(const bool newIsRunning)
 {
+    const auto curStatus = m_status.load();
+
     if (newIsRunning)
     {
-        if (m_status == ocp::Status::Starting || m_status == ocp::Status::Running)
+        if (curStatus.status == S::Starting || curStatus.status == S::Running)
             return;
 
         start();
         return;
     }
 
-    if (m_status != ocp::Status::Starting && m_status != ocp::Status::Running)
+    if (curStatus.status != S::Starting && curStatus.status != S::Running)
         return;
 
     stop();
@@ -338,11 +364,11 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
                                void* data)
 {
     auto* engine = static_cast<AudioEngine*>(data);
-    const auto status = engine->m_status.load();
+    auto status = engine->m_status.load();
 
     auto* out = static_cast<float*>(outputBuffer);
 
-    if (status == ocp::Status::OnHold)
+    if (status.status == S::Stopped)
     {
         for (unsigned int i = 0; i < frameCount; ++i)
         {
@@ -353,23 +379,25 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
         return 0;
     }
 
-    if (status == ocp::Status::StopRequested)
+    if (status.status == S::StopRequested)
     {
         for (auto* channelStrip : engine->m_channelStrips)
             channelStrip->stopProcessing();
 
-        engine->m_status = ocp::Status::Stopping;
+        status.status = S::Stopping;
+        engine->m_status.store(status);
         emit engine->stopRequested();
 
         return 0;
     }
 
-    if (status == ocp::Status::Starting)
+    if (status.status == S::Starting)
     {
         for (auto* channelStrip : engine->m_channelStrips)
             channelStrip->startProcessing();
 
-        engine->m_status = ocp::Status::Running;
+        status.status = S::Running;
+        engine->m_status.store(status);
     }
 
     // Midi

@@ -46,7 +46,7 @@ Qt::ItemFlags ParameterModel::flags(const QModelIndex &index) const
 
 int ParameterModel::rowCount(const QModelIndex&) const
 {
-    if (m_plugin.status == ocp::Status::OnError)
+    if (m_plugin.status.load().status == S::OnError)
         return 0;
 
     if (!m_pluginProxy.canUseParams())

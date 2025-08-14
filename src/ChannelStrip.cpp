@@ -37,7 +37,7 @@ void ChannelStrip::activate(const std::int32_t sampleRate, const std::int32_t bl
 
     for (auto* node : nodes)
     {
-        node->activate(sampleRate, static_cast<int>(blockSize));
+        node->activate(sampleRate, blockSize);
     }
 }
 
@@ -51,15 +51,23 @@ void ChannelStrip::startProcessing()
 {
     for (auto* plugin : nodes)
     {
-        if (plugin->status >= ocp::Status::OnHold)
+        if (plugin->status.load().status >= S::Stopped)
             plugin->startProcessing();
     }
+
+    auto curStatus = status.load();
+    curStatus.status = S::Running;
+    status.store(curStatus);
 }
 
 void ChannelStrip::stopProcessing()
 {
     for (auto* plugin : nodes)
         plugin->stopProcessing();
+
+    auto curStatus = status.load();
+    curStatus.status = S::Stopped;
+    status.store(curStatus);
 }
 
 void ChannelStrip::processNoteRawMidi(const int sampleOffset, const std::vector<unsigned char>& data)
@@ -70,7 +78,7 @@ void ChannelStrip::processNoteRawMidi(const int sampleOffset, const std::vector<
 
 void ChannelStrip::process()
 {
-    if (m_status == ocp::Status::Inactive)
+    if (status.load().status == S::Inactive)
         return;
 
     for (unsigned int i = 0; i < m_bufferSize; ++i)
@@ -135,6 +143,7 @@ QJsonObject ChannelStrip::getState() const
     QJsonObject state;
     state["name"] = m_name;
     state["outputVolume"] = m_outputVolume.load();
+    state["isBypassed"] = status.load().isBypassed;
 
     QJsonArray jsonArray;
     for (const auto* node : nodes)
@@ -174,12 +183,27 @@ void ChannelStrip::setOutputVolume(const double newOutputVolume)
     emit outputVolumeChanged();
 }
 
+bool ChannelStrip::isMuted() const
+{
+    return status.load().isBypassed;
+}
+
+void ChannelStrip::setIsMuted(const bool newIsMuted)
+{
+    auto status_ = status.load();
+    if (newIsMuted == status_.isBypassed)
+        return;
+
+    status_.isBypassed = newIsMuted;
+    status.store(status_);
+
+    emit isMutedChanged();
+}
+
 void ChannelStrip::load(PluginHost* plugin, const QString& path, const int pluginIndex)
 {
     if (plugin)
         plugin->setIsByPassed(true);
-
-
 
     PluginHost* pluginToReload = plugin;
 
@@ -192,12 +216,10 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
     auto* m_pluginManager = PluginManager::instance();
 
     m_pluginManager->load(*pluginToReload, path, pluginIndex);
-    // m_pluginWatcher.addPath(path);
 
-    if (m_status > ocp::Status::OnHold)
+    if (status.load().status > S::Stopped)
     {
         pluginToReload->setPorts(2, m_outputBuffer, 2, m_outputBuffer);
-        // pluginToReload->setPortsD(2, m_outputBufferD, 2, m_outputBufferD);
         pluginToReload->activate(48000, static_cast<int>(m_bufferSize));
     }
 
@@ -211,13 +233,16 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
 
 void ChannelStrip::reorder(const int from, const int to)
 {
-    const auto oldStatus = m_status.load();
-    m_status = ocp::Status::Inactive;
+    const auto oldStatus = status.load();
+    auto tmpStatus = oldStatus;
+    tmpStatus.status = S::Inactive;
+
+    status.store(tmpStatus);
 
     const auto element = nodes.takeAt(from);
     nodes.insert(to, element);
 
-    m_status = oldStatus;
+    status.store(oldStatus);
 
     emit pluginsChanged();
 }

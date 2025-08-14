@@ -8,7 +8,6 @@ class MidiFilePlayer : public Node
     Q_OBJECT
     Q_PROPERTY(float outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
     Q_PROPERTY(QString filePath READ filePath WRITE setFilePath NOTIFY filePathChanged)
-    QML_ELEMENT
 
   public:
     explicit MidiFilePlayer(QObject* parent = nullptr);
@@ -37,7 +36,7 @@ class MidiFilePlayer : public Node
 
 
   public:
-    std::atomic<ocp::Status> m_status = ocp::Status::Running;
+    std::atomic<Status> m_status;
     std::atomic<float> m_outputVolume = 0.7f;
 
     QString m_filePath;

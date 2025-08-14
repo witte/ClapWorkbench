@@ -94,4 +94,23 @@ Rectangle
 
         orientation: Qt.Vertical
     }
+
+    O.LightButton
+    {
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+
+        bgHoveredColor: "#2f3338"
+        bgPressedColor: "#262A2E"
+
+        textColor: "#dddddd"
+        textPressedColor: "#bbbbbb"
+
+        font.pointSize: 14
+
+        text: "M"
+
+        checked: channelStrip.isMuted
+        onClicked: channelStrip.isMuted = !channelStrip.isMuted
+    }
 }

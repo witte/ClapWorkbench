@@ -2,7 +2,6 @@
 #include "ChannelStrip.h"
 #include "PluginHost.h"
 #include "PluginManager.h"
-#include "Utils.h"
 #include "Utils/RecursiveFileSystemWatcher.h"
 #include <QObject>
 
@@ -79,7 +78,7 @@ class AudioEngine final : public QObject
 
 
   private:
-    std::atomic<ocp::Status> m_status = ocp::Status::Inactive;
+    std::atomic<Status> m_status;
 
     static int audioCallback(void* outputBuffer,
                              void* inputBuffer,

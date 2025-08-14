@@ -137,6 +137,11 @@ PluginManager::~PluginManager()
 bool PluginManager::load(PluginHost& caller, const QString& path, const uint32_t pluginIndex)
 {
     qDebug() << "PluginManager::load:" << path;
+
+    auto s = caller.status.load();
+    s.status = S::Inactive;
+    caller.status.store(s);
+
     unload(caller);
 
     caller.m_pluginPath = path.startsWith("file://")? path.mid(7) : path;
@@ -161,7 +166,8 @@ bool PluginManager::load(PluginHost& caller, const QString& path, const uint32_t
     if (!plugin)
     {
         qWarning() << "could not create plugin with id: " << descriptor.id;
-        caller.status = ocp::Status::OnError;
+        s.status = S::OnError;
+        caller.status.store(s);
 
         return false;
     }
@@ -171,7 +177,8 @@ bool PluginManager::load(PluginHost& caller, const QString& path, const uint32_t
     if (!pluginProxy->init())
     {
         qWarning() << "could not initialize plugin with id: " << descriptor.id;
-        caller.status = ocp::Status::OnError;
+        s.status = S::OnError;
+        caller.status.store(s);
         caller.m_plugin.reset();
 
         return false;
@@ -195,7 +202,7 @@ void PluginManager::unload(PluginHost& pluginHost, [[maybe_unused]] const bool f
     if (!pluginHost.name().isEmpty())
         qDebug() << "PluginManager::unload:" << pluginHost.name();
 
-    if (pluginHost.status >= ocp::Status::OnHold)
+    if (pluginHost.status.load().status >= S::Stopped)
         pluginHost.deactivate();
 
     pluginHost.m_parameterModel.reset();
