@@ -224,7 +224,7 @@ void AudioEngine::addNewChannelStrip()
     emit channelStripsChanged();
 }
 
-void AudioEngine::unload(PluginHost* pluginToUnload)
+void AudioEngine::unload(Node* pluginToUnload)
 {
     ChannelStrip* channelStripToChange = nullptr;
     for (auto* channelStrip : m_channelStrips)

@@ -36,9 +36,6 @@ class Node : public QObject
 
   public:
     static Node* create(Node* parent, const QJsonObject& stateToLoad);
-
-    explicit Node();
-    explicit Node(Node* parent);
     ~Node() override;
 
     [[nodiscard]] QString name() const;
@@ -72,7 +69,8 @@ class Node : public QObject
 
 
   public slots:
-    virtual void setProperty(const QString& /*name*/, const QString& /*value*/) {}
+    virtual void addNode(const QJsonObject& /*state*/) {}
+    virtual void removeNode(const QJsonObject& /*state*/) {}
 
 
   signals:
@@ -82,6 +80,9 @@ class Node : public QObject
 
 
   protected:
+    explicit Node();
+    explicit Node(Node* parent);
+
     QString m_name;
 
 };

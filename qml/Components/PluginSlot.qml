@@ -122,7 +122,8 @@ MouseArea
                 width: parent.parent.buttonWidth
                 height: control.buttonHeight
 
-                onClicked: {
+                onClicked:
+                {
                     // FIXME: this prevents a double deletion of the same pointer, but the check should be done
                     // on the cpp side
                     const nodeToDelete = control.modelData

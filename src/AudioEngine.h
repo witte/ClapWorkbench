@@ -12,7 +12,6 @@ class PluginInstanceWindow;
 class QUndoStack;
 class QAction;
 class QQuickView;
-class PluginHost;
 
 
 class AudioEngine final : public QObject
@@ -61,7 +60,7 @@ class AudioEngine final : public QObject
 
   public slots:
     void addNewChannelStrip();
-    void unload(PluginHost* pluginToUnload);
+    void unload(Node* pluginToUnload);
     void undo() const;
 
 

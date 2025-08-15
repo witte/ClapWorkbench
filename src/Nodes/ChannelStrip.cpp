@@ -79,9 +79,14 @@ void ChannelStrip::processNoteRawMidi(const int sampleOffset, const std::vector<
 
 void ChannelStrip::process()
 {
+    std::memset(m_outputBuffer[0], 0, m_bufferSize * sizeof(float));
+    std::memset(m_outputBuffer[1], 0, m_bufferSize * sizeof(float));
+
     auto curStatus = status.load();
-    if (curStatus.isBypassed || pendingTopologyChanges > 0)
+    if (pendingTopologyChanges > 0)
+    {
         return;
+    }
 
     if (curStatus.status == S::Starting)
     {
@@ -208,6 +213,16 @@ void ChannelStrip::setOutputVolume(const double newOutputVolume)
     m_outputVolume = newOutputVolume;
 
     emit outputVolumeChanged();
+}
+
+void ChannelStrip::addNode(const QJsonObject& state)
+{
+
+}
+
+void ChannelStrip::removeNode(const QJsonObject& state)
+{
+
 }
 
 void ChannelStrip::load(PluginHost* plugin, const QString& path, const int pluginIndex)

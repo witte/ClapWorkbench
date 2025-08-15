@@ -35,6 +35,9 @@ class ChannelStrip final : public Node
 
 
   public slots:
+    void addNode(const QJsonObject& state) override;
+    void removeNode(const QJsonObject& state) override;
+
     void load(PluginHost* plugin, const QString& path, int pluginIndex);
     void reorder(int from, int to);
 
