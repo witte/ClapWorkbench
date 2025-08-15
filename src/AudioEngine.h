@@ -1,9 +1,9 @@
 #pragma once
-#include "ChannelStrip.h"
-#include "PluginHost.h"
+#include <QObject>
+#include "Nodes/Node.h"
 #include "PluginManager.h"
 #include "Utils/RecursiveFileSystemWatcher.h"
-#include <QObject>
+
 
 typedef unsigned int RtAudioStreamStatus;
 class RtAudio;
@@ -12,6 +12,7 @@ class PluginInstanceWindow;
 class QUndoStack;
 class QAction;
 class QQuickView;
+class PluginHost;
 
 
 class AudioEngine final : public QObject

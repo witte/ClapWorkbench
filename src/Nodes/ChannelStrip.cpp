@@ -80,8 +80,17 @@ void ChannelStrip::processNoteRawMidi(const int sampleOffset, const std::vector<
 void ChannelStrip::process()
 {
     auto curStatus = status.load();
-    if (curStatus.status != S::Running || curStatus.isBypassed || pendingTopologyChanges > 0)
+    if (curStatus.isBypassed || pendingTopologyChanges > 0)
         return;
+
+    if (curStatus.status == S::Starting)
+    {
+        startProcessing();
+    }
+    else if (curStatus.status != S::Running)
+    {
+        return;
+    }
 
     const clap::helpers::EventList* lastPluginEventsOut = nullptr;
     for (auto* plugin : m_nodes)
@@ -225,7 +234,7 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
 
         auto tmpStatus = status.load();
         tmpStatus.status = S::Starting;
-        status.store(tmpStatus);
+        pluginToReload->status.store(tmpStatus);
     }
 
     pluginToReload->setIsByPassed(false);

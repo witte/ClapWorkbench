@@ -37,45 +37,6 @@ Rectangle
         anchors.right: parent.right
     }
 
-    // ChannelStrip
-    // {
-    //     id: channelStrip
-    //
-    //     anchors.top: topBar.bottom
-    //     anchors.left: parent.left
-    //     anchors.bottom: parent.bottom
-    // }
-    //
-    // ChannelStrip
-    // {
-    //     id: channelStrip3
-    //
-    //     anchors.top: topBar.bottom
-    //     anchors.left: channelStrip.right
-    //     anchors.bottom: parent.bottom
-    // }
-
-    // Item
-    // {
-    //     id: rect
-    //
-    //     anchors
-    //     {
-    //         left: parent.left
-    //         top: topBar.bottom
-    //         right: channelStrip2.left
-    //         bottom: parent.bottom
-    //         margins: 6
-    //     }
-    //
-    //     Loader
-    //     {
-    //         id: mainPluginWindowComponentLoader
-    //
-    //         anchors.centerIn: parent
-    //     }
-    // }
-
     ListView
     {
         id: channels
@@ -114,34 +75,6 @@ Rectangle
         }
     }
 
-    Keys.onPressed: (event) =>
-    {
-        audioEngine.key(event.key, true)
-        event.accepted = true
-    }
-
-    Keys.onReleased: (event) =>
-    {
-        audioEngine.key(event.key, false)
-        event.accepted = true
-    }
-
-    Connections
-    {
-        target: app
-
-        function onMainWindowPluginChanged()
-        {
-            if (!app.mainWindowPlugin)
-            {
-                // mainPluginWindowComponentLoader.sourceComponent = undefined
-                return
-            }
-
-            // mainPluginWindowComponentLoader.setSource("Components/MainWindowPluginGUI.qml", { "plugin": app.mainWindowPlugin })
-        }
-    }
-
     FileDialog
     {
         id: loadSessionFileDialog
@@ -172,6 +105,4 @@ Rectangle
     {
         saveSessionAsFileDialog.open()
     }
-
-    Component.onCompleted: app.informLoadFinished()
 }

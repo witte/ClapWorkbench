@@ -29,7 +29,7 @@ Rectangle
 
         font.pointSize: 35
 
-        onClicked: app.openPluginBrowserWindow(control.plugin)
+        onClicked: app.openPluginBrowserWindow(control.plugin, null)
     }
 
     Row

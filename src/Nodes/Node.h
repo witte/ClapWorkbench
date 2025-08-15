@@ -1,9 +1,8 @@
 #pragma once
-#include "clap/helpers/event-list.hh"
-#include "clap/process.h"
-#include <QObject>
-#include <qqmlintegration.h>
 #include <vector>
+#include <clap/helpers/event-list.hh>
+#include <clap/process.h>
+#include <QObject>
 
 
 enum class S : std::uint8_t

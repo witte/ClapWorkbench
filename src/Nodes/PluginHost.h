@@ -4,9 +4,8 @@
 #include <clap/helpers/host.hh>
 #include <clap/helpers/plugin-proxy.hh>
 #include <clap/helpers/reducing-param-queue.hh>
-#include <QObject>
-#include <QQuickWindow>
 #include <QJsonObject>
+#include <QQuickWindow>
 #include "Node.h"
 #include "ParameterModel.h"
 

@@ -72,7 +72,7 @@ Rectangle
 
             text: "+"
 
-            onClicked: app.openPluginBrowserWindow(control.channelStrip)
+            onClicked: app.openPluginBrowserWindow(control.channelStrip, null)
         }
     }
 

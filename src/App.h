@@ -4,11 +4,6 @@
 #include "AudioEngine.h"
 
 
-class QQuickWindowContainer;
-class PluginQuickView;
-class PluginHost;
-
-
 class App final : public QGuiApplication
 {
     Q_OBJECT
@@ -31,15 +26,13 @@ class App final : public QGuiApplication
 
 
   public slots:
-    void informLoadFinished() const;
-
     bool isNewSession() const;
     void newSession();
     void saveSession();
     void saveSession(const QString& path);
     void loadSession(const QString& path);
 
-    void openPluginBrowserWindow(ChannelStrip* channelStrip, PluginHost* pluginHostToLoadInto = nullptr);
+    void openPluginBrowserWindow(Node* channelStrip, Node* pluginHostToLoadInto);
 
 
   private:
@@ -48,6 +41,4 @@ class App final : public QGuiApplication
     AudioEngine m_audioEngine;
     QQmlApplicationEngine m_qmlEngine;
     QQuickView m_mainView{&m_qmlEngine, nullptr};
-
-    std::chrono::time_point<std::chrono::high_resolution_clock> timeStart;
 };

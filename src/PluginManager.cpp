@@ -1,5 +1,5 @@
 #include "PluginManager.h"
-#include "PluginHost.h"
+#include "Nodes/PluginHost.h"
 #include "PluginLibrary.h"
 #include <QSettings>
 #include <QTimer>

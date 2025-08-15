@@ -1,7 +1,7 @@
 #include "PluginQuickView.h"
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
-#include "PluginHost.h"
+#include "Nodes/PluginHost.h"
 
 
 PluginQuickView::PluginQuickView(QQmlApplicationEngine& engine, PluginHost& plugin) :

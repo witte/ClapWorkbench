@@ -9,6 +9,8 @@
 #include <QUndoStack>
 #include <rtaudio/RtAudio.h>
 #include <rtmidi/RtMidi.h>
+#include "Nodes/ChannelStrip.h"
+#include "Nodes/PluginHost.h"
 
 AudioEngine* inst_ = nullptr;
 

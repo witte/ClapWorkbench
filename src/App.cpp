@@ -1,18 +1,18 @@
 #include "App.h"
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QSettings>
-#include <QFontDatabase>
-#include <QQuickWindow>
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonDocument>
 #include <QBuffer>
 #include <QFileInfo>
+#include <QFontDatabase>
+#include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQuickWindow>
+#include <QSettings>
 #include "Utils.h"
-#include "PluginHost.h"
-#include "AudioEngine.h"
+#include "Nodes/ChannelStrip.h"
+#include "Nodes/PluginHost.h"
 #include "Components/PluginQuickView.h"
 
 
@@ -34,8 +34,6 @@ App* App::instance()
 
 App::App(int& argc, char** argv) : QGuiApplication(argc, argv)
 {
-    timeStart = std::chrono::high_resolution_clock::now();
-
     m_instance = this;
 
     connect(&m_qmlEngine, &QQmlApplicationEngine::objectCreationFailed,
@@ -95,14 +93,6 @@ App::~App()
     settings.setValue("lastLoadedSession", m_currentSessionPath);
 }
 
-void App::informLoadFinished() const
-{
-    const std::chrono::time_point<std::chrono::high_resolution_clock> timeEnd = std::chrono::high_resolution_clock::now();
-    const auto count = std::chrono::duration_cast<std::chrono::milliseconds>(timeEnd - timeStart);
-
-    qDebug() << "startup time in ms:" << count.count();
-}
-
 bool App::isNewSession() const
 {
     return m_currentSessionPath.isEmpty();
@@ -153,7 +143,7 @@ void App::loadSession(const QString& path)
     m_mainView.setTitle(getViewTitleFromSessionName(m_currentSessionPath));
 }
 
-void App::openPluginBrowserWindow(ChannelStrip* channelStrip, PluginHost* pluginHostToLoadInto)
+void App::openPluginBrowserWindow(Node* channelStrip, Node* pluginHostToLoadInto)
 {
     auto* pluginBrowserView = new QQuickView(&m_qmlEngine, nullptr);
     pluginBrowserView->setColor(Qt::transparent);

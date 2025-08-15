@@ -1,5 +1,5 @@
 #include "ParameterModel.h"
-#include "PluginHost.h"
+#include "Nodes/PluginHost.h"
 #include "AudioEngine.h"
 #include "Commands.h"
 

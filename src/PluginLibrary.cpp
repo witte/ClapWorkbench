@@ -1,6 +1,6 @@
 #include "PluginLibrary.h"
-#include "clap/entry.h"
-#include "clap/factory/plugin-factory.h"
+#include <clap/entry.h>
+#include <clap/factory/plugin-factory.h>
 #include <QtDebug>
 #include "Utils.h"
 

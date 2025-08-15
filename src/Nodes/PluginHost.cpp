@@ -1,17 +1,16 @@
 #include "PluginHost.h"
 #include <exception>
+#include <thread>
 #include <clap/helpers/host.hxx>
 #include <clap/helpers/plugin-proxy.hxx>
 #include <clap/helpers/reducing-param-queue.hxx>
-#include <QFile>
 #include <QBuffer>
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include "App.h"
-#include "Utils.h"
 #include "Components/PluginQuickView.h"
-
-#include <thread>
+#include "Utils.h"
 
 
 enum class ThreadType
