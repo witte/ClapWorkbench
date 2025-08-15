@@ -63,20 +63,14 @@ class AudioEngine final : public QObject
     void unload(PluginHost* pluginToUnload);
     void undo() const;
 
-    void key(int key, bool on);
-
 
   signals:
     void isByPassedChanged();
     void channelStripsChanged();
 
-    void pluginsChanged();
-    void pluginHostReloaded(PluginHost* pluginHost);
-
     void isRunningChanged();
     void outputVolumeChanged();
     void bpmChanged();
-    void outputDelayChanged();
 
     void stopRequested();
 

@@ -225,36 +225,25 @@ void AudioEngine::addNewChannelStrip()
 void AudioEngine::unload(PluginHost* pluginToUnload)
 {
     ChannelStrip* channelStripToChange = nullptr;
-
     for (auto* channelStrip : m_channelStrips)
     {
         if (!channelStrip->m_nodes.contains(pluginToUnload))
             continue;
 
-        channelStripToChange = static_cast<ChannelStrip*>(channelStrip);
+        channelStripToChange = dynamic_cast<ChannelStrip*>(channelStrip);
     }
 
     if (!channelStripToChange)
         return;
 
-    auto pluginStatus = pluginToUnload->status.load();
-    if (pluginStatus.status == S::ToBeDeleted)
-        return;
-
     ++channelStripToChange->pendingTopologyChanges;
 
-    pluginStatus.status = S::ToBeDeleted;
-    pluginToUnload->status.store(pluginStatus);
-
-    QTimer::singleShot(900, this, [channelStripToChange, pluginToUnload]()
+    QTimer::singleShot(700, this, [channelStripToChange, pluginToUnload]()
     {
         channelStripToChange->m_nodes.removeAll(pluginToUnload);
-
         emit channelStripToChange->nodesChanged();
 
         --channelStripToChange->pendingTopologyChanges;
-
-        qDebug() << "-> " << pluginToUnload;
         pluginToUnload->deleteLater();
     });
 }
@@ -327,32 +316,6 @@ void AudioEngine::setBpm(const double newBpm)
 }
 
 void AudioEngine::undo() const { m_undoStack->undo(); }
-
-void AudioEngine::key(const int key, const bool on)
-{
-    if (on)
-        qDebug() << "AudioEngine::key(" << key << ")";
-
-    // switch (key)
-    // {
-    // case 90:
-    // case 83:
-    // case 88:
-    // case 68:
-    // case 67:
-    // case 86:
-    // case 71:
-    // case 66:
-    // case 72:
-    // case 78:
-    // case 74:
-    // case 77:
-    // case 44:
-    // }
-    //
-    // for (auto* channelStrip : engine->m_channelStrips)
-    //     channelStrip->processNoteRawMidi(sampleOffset, midiBuffer);
-}
 
 int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int frameCount,
                                const double currentTime, RtAudioStreamStatus,

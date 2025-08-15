@@ -138,9 +138,8 @@ bool PluginManager::load(PluginHost& caller, const QString& path, const uint32_t
 {
     qDebug() << "PluginManager::load:" << path;
 
+    ++caller.pendingTopologyChanges;
     auto s = caller.status.load();
-    s.status = S::Inactive;
-    caller.status.store(s);
 
     unload(caller);
 
@@ -168,6 +167,7 @@ bool PluginManager::load(PluginHost& caller, const QString& path, const uint32_t
         qWarning() << "could not create plugin with id: " << descriptor.id;
         s.status = S::OnError;
         caller.status.store(s);
+        --caller.pendingTopologyChanges;
 
         return false;
     }
@@ -180,6 +180,7 @@ bool PluginManager::load(PluginHost& caller, const QString& path, const uint32_t
         s.status = S::OnError;
         caller.status.store(s);
         caller.m_plugin.reset();
+        --caller.pendingTopologyChanges;
 
         return false;
     }
@@ -190,6 +191,7 @@ bool PluginManager::load(PluginHost& caller, const QString& path, const uint32_t
     caller.m_index = pluginIndex;
 
     emit caller.hostedPluginChanged();
+    --caller.pendingTopologyChanges;
 
     return true;
 }

@@ -8,7 +8,6 @@
 #include <QQuickWindow>
 #include <QJsonObject>
 #include "Node.h"
-#include "Utils.h"
 #include "ParameterModel.h"
 
 
@@ -34,7 +33,7 @@ extern template class clap::helpers::Host<PluginHost_MH, PluginHost_CL>;
 using PluginProxy = clap::helpers::PluginProxy<PluginHost_MH, PluginHost_CL>;
 extern template class clap::helpers::PluginProxy<PluginHost_MH, PluginHost_CL>;
 
-class PluginHost : public Node, public BaseHost
+class PluginHost final : public Node, public BaseHost
 {
     Q_OBJECT
     Q_PROPERTY(ParameterModel* parameters READ parameters CONSTANT)

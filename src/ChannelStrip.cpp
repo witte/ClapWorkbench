@@ -222,6 +222,10 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
     {
         pluginToReload->setPorts(2, m_outputBuffer, 2, m_outputBuffer);
         pluginToReload->activate(48000, static_cast<int>(m_bufferSize));
+
+        auto tmpStatus = status.load();
+        tmpStatus.status = S::Starting;
+        status.store(tmpStatus);
     }
 
     pluginToReload->setIsByPassed(false);
@@ -229,7 +233,6 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
     emit nodesChanged();
     emit pluginToReload->nameChanged();
     emit pluginToReload->hasNativeGUIChanged();
-    emit pluginHostReloaded(pluginToReload);
 }
 
 void ChannelStrip::reorder(const int from, const int to)

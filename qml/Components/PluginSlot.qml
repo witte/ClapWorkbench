@@ -9,6 +9,7 @@ MouseArea
 {
     id: control
 
+    property QtObject channelStrip
     property QtObject modelData
     property int buttonHeight: height + 1
 
@@ -85,7 +86,7 @@ MouseArea
 
                 text: "\u2315"
 
-                onClicked: app.openPluginBrowserWindow(control.modelData)
+                onClicked: app.openPluginBrowserWindow(control.channelStrip, control.modelData)
             }
 
             O.Button
@@ -121,7 +122,13 @@ MouseArea
                 width: parent.parent.buttonWidth
                 height: control.buttonHeight
 
-                onClicked: audioEngine.unload(control.modelData)
+                onClicked: {
+                    // FIXME: this prevents a double deletion of the same pointer, but the check should be done
+                    // on the cpp side
+                    const nodeToDelete = control.modelData
+                    control.modelData = null
+                    audioEngine.unload(nodeToDelete)
+                }
 
                 roundLeft: false
                 roundRight: false

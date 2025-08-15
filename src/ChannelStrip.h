@@ -4,10 +4,9 @@
 #include <QJsonObject>
 
 
-class ChannelStrip : public Node
+class ChannelStrip final : public Node
 {
     Q_OBJECT
-    // Q_PROPERTY(QList<Node*> plugins READ plugins NOTIFY pluginsChanged)
     Q_PROPERTY(double outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
 
   public:
@@ -27,18 +26,11 @@ class ChannelStrip : public Node
     [[nodiscard]] QJsonObject getState() const override;
     void loadState(const QJsonObject& stateToLoad) override;
 
-    // [[nodiscard]] QList<Node*> plugins() const;
-    // void clearNodes();
-
     [[nodiscard]] double outputVolume() const;
     void setOutputVolume(double newOutputVolume);
 
 
   signals:
-    // void pluginsChanged();
-    void pluginHostReloaded(PluginHost* pluginHost);
-    void pluginHostRemoved(PluginHost* pluginHost);
-
     void outputVolumeChanged();
 
 
@@ -52,6 +44,4 @@ class ChannelStrip : public Node
 
     unsigned int m_bufferSize = 4096;
     float* m_outputBuffer[2] = {nullptr, nullptr};
-
-    // QList<Node*> nodes;
 };

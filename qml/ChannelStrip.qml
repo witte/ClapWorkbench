@@ -45,6 +45,7 @@ Rectangle
 
             delegate: O.PluginSlot
             {
+                channelStrip: control.channelStrip
                 width: pluginSlots.width
                 height: 24
             }
