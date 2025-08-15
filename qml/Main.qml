@@ -90,7 +90,7 @@ Rectangle
         orientation: ListView.Horizontal
         layoutDirection: Qt.RightToLeft
 
-        delegate: ChannelStripGUI
+        delegate: ChannelStrip
         {
             channelStrip: modelData
         }

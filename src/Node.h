@@ -15,6 +15,7 @@ enum class S : std::uint8_t
     Running,
     StopRequested,
     Stopping,
+    ToBeDeleted,
 };
 
 struct Status
@@ -31,9 +32,14 @@ class Node : public QObject
     Q_OBJECT
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(bool isByPassed READ isByPassed WRITE setIsByPassed NOTIFY isByPassedChanged)
+    Q_PROPERTY(QList<Node*> nodes READ nodes NOTIFY nodesChanged)
+
 
   public:
-    explicit Node(QObject* parent = nullptr);
+    static Node* create(Node* parent, const QJsonObject& stateToLoad);
+
+    explicit Node();
+    explicit Node(Node* parent);
     ~Node() override;
 
     [[nodiscard]] QString name() const;
@@ -41,6 +47,9 @@ class Node : public QObject
 
     [[nodiscard]] bool isByPassed() const;
     void setIsByPassed(bool newValue);
+
+    [[nodiscard]] QList<Node*> nodes() const;
+    void clearNodes();
 
     virtual void setPorts(int numInputs, float** inputs, int numOutputs, float** outputs) = 0;
     virtual void activate(std::int32_t sampleRate, std::int32_t blockSize) = 0;
@@ -53,8 +62,10 @@ class Node : public QObject
     virtual void process() = 0;
 
     virtual QJsonObject getState() const = 0;
-    virtual void loadState(const QJsonObject& stateToLoad) const = 0;
+    virtual void loadState(const QJsonObject& stateToLoad) = 0;
 
+    QList<Node*> m_nodes;
+    std::atomic<int> pendingTopologyChanges = 0;
     std::atomic<Status> status;
     clap_process m_process{};
     clap::helpers::EventList m_evIn;
@@ -68,8 +79,10 @@ class Node : public QObject
   signals:
     void nameChanged();
     void isByPassedChanged();
+    void nodesChanged();
 
 
   protected:
     QString m_name;
+
 };

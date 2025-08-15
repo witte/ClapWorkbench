@@ -78,7 +78,7 @@ qt_add_qml_module(${PROJECT_NAME}
         qml/Components/ReorderableListView.qml
         qml/Components/Slider.qml
         qml/TopBar.qml
-        qml/ChannelStripGUI.qml
+        qml/ChannelStrip.qml
         qml/Main.qml
 )
 

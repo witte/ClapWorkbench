@@ -12,7 +12,6 @@ class PluginHost;
 class App final : public QGuiApplication
 {
     Q_OBJECT
-    Q_PROPERTY(PluginHost* mainWindowPlugin READ mainWindowPlugin WRITE setMainWindowPlugin NOTIFY mainWindowPluginChanged)
 
   public:
     static App* instance();
@@ -25,9 +24,6 @@ class App final : public QGuiApplication
     App(const App&&) = delete;
 
     QQmlApplicationEngine& getQmlEngine() { return m_qmlEngine; };
-
-    [[nodiscard]] PluginHost* mainWindowPlugin() const;
-    void setMainWindowPlugin(PluginHost* plugin);
 
 
   signals:
@@ -45,8 +41,6 @@ class App final : public QGuiApplication
 
     void openPluginBrowserWindow(ChannelStrip* channelStrip, PluginHost* pluginHostToLoadInto = nullptr);
 
-    // void load(PluginHost* plugin, const QString& path, int pluginIndex);
-
 
   private:
     QString m_currentSessionPath;
@@ -54,8 +48,6 @@ class App final : public QGuiApplication
     AudioEngine m_audioEngine;
     QQmlApplicationEngine m_qmlEngine;
     QQuickView m_mainView{&m_qmlEngine, nullptr};
-
-    PluginHost* m_mainWindowPlugin = nullptr;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> timeStart;
 };

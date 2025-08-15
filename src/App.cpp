@@ -62,26 +62,6 @@ App::App(int& argc, char** argv) : QGuiApplication(argc, argv)
     m_qmlEngine.rootContext()->setContextProperty("app", this);
     m_qmlEngine.rootContext()->setContextProperty("audioEngine", &m_audioEngine);
 
-    connect(&m_audioEngine, &AudioEngine::pluginHostReloaded, this, [this](PluginHost* pluginHost)
-    {
-        if (pluginHost != m_mainWindowPlugin && !pluginHost->isFloatingWindowOpen())
-        {
-            pluginHost->setIsFloatingWindowOpen(true);
-            return;
-        }
-
-        emit mainWindowPluginChanged();
-    });
-
-    connect(&m_audioEngine, &AudioEngine::pluginHostRemoved, this, [this](const PluginHost* pluginHost)
-    {
-        if (pluginHost != m_mainWindowPlugin)
-            return;
-
-        m_mainWindowPlugin = nullptr;
-        emit mainWindowPluginChanged();
-    });
-
     m_mainView.loadFromModule("ClapWorkbench", "Main");
 
     connect(&m_mainView, &QQuickView::closing, this, []() { exit(); });
@@ -115,20 +95,6 @@ App::~App()
     settings.setValue("lastLoadedSession", m_currentSessionPath);
 }
 
-PluginHost* App::mainWindowPlugin() const
-{
-    return m_mainWindowPlugin;
-}
-
-void App::setMainWindowPlugin(PluginHost* plugin)
-{
-    if (plugin)
-        plugin->setIsFloatingWindowOpen(false);
-
-    m_mainWindowPlugin = plugin;
-    emit mainWindowPluginChanged();
-}
-
 void App::informLoadFinished() const
 {
     const std::chrono::time_point<std::chrono::high_resolution_clock> timeEnd = std::chrono::high_resolution_clock::now();
@@ -144,7 +110,6 @@ bool App::isNewSession() const
 
 void App::newSession()
 {
-    setMainWindowPlugin(nullptr);
     m_audioEngine.loadSession("");
 
     m_currentSessionPath = "";

@@ -1,7 +1,7 @@
 #include "MidiFilePlayer.h"
 
 
-MidiFilePlayer::MidiFilePlayer(QObject* parent) : Node(parent) {}
+MidiFilePlayer::MidiFilePlayer(Node* parent) : Node(parent) {}
 
 MidiFilePlayer::~MidiFilePlayer() = default;
 

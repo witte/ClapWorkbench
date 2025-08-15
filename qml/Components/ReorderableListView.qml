@@ -8,7 +8,7 @@ MouseArea
     id: control
 
     property QtObject draggedItem
-    property list<PluginHost> model
+    property list<QtObject> model
     property Component delegate
     property int draggedItemSpacing: 4
 

@@ -10,7 +10,7 @@ class MidiFilePlayer : public Node
     Q_PROPERTY(QString filePath READ filePath WRITE setFilePath NOTIFY filePathChanged)
 
   public:
-    explicit MidiFilePlayer(QObject* parent = nullptr);
+    explicit MidiFilePlayer(Node* parent);
     ~MidiFilePlayer() override;
 
     void setPorts(int numInputs, float** inputs, int numOutputs, float** outputs) override;

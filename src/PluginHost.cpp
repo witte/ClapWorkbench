@@ -47,7 +47,7 @@ template class clap::helpers::Host<PluginHost_MH, PluginHost_CL>;
 template class clap::helpers::PluginProxy<PluginHost_MH, PluginHost_CL>;
 
 
-PluginHost::PluginHost(QObject* parent)
+PluginHost::PluginHost(Node* parent)
     : Node(parent), BaseHost("Clap Workbench", "witte", "io.github.witte", "0.0.1")
 {
     threadType = ThreadType::MainThread;
@@ -58,12 +58,18 @@ PluginHost::PluginHost(QObject* parent)
 
 PluginHost::~PluginHost()
 {
+    qDebug() << "PluginHost::~PluginHost()" << m_name;
     setIsFloatingWindowOpen(false);
     PluginHost::deactivate();
     destroyGuiWindow();
 
     if (m_plugin)
+    {
         m_plugin->destroy();
+        m_plugin.reset();
+    }
+
+    PluginManager::instance()->unload(*this);
 }
 
 uint32_t PluginHost::parameterCount() const
@@ -557,10 +563,11 @@ void PluginHost::loadPluginState(const QString& stateAsBase64)
 QJsonObject PluginHost::getState() const
 {
     QJsonObject pluginStateJson;
-    pluginStateJson["path"] = path();
-    pluginStateJson["index"] = static_cast<int>(index());
+    pluginStateJson["type"] = "PluginHost";
     pluginStateJson["name"] = name();
     pluginStateJson["isBypassed"] = status.load().isBypassed;
+    pluginStateJson["path"] = path();
+    pluginStateJson["index"] = static_cast<int>(index());
 
     if (!m_plugin->canUseState())
     {
@@ -595,7 +602,22 @@ QJsonObject PluginHost::getState() const
     return pluginStateJson;
 }
 
-void PluginHost::loadState(const QJsonObject& stateToLoad) const {}
+void PluginHost::loadState(const QJsonObject& stateToLoad)
+{
+    if (stateToLoad.isEmpty())
+        return;
+
+    const auto pluginPath = stateToLoad["path"].toString();
+    const auto pluginIndex = stateToLoad["index"].toInt();
+    const auto pluginStateData = stateToLoad["stateData"].toString();
+
+    PluginManager::instance()->load(*this, pluginPath, pluginIndex);
+    loadPluginState(pluginStateData);
+
+    Status pluginStatus;
+    pluginStatus.isBypassed = stateToLoad["isBypassed"].toBool();
+    status.store(pluginStatus);
+}
 
 void PluginHost::beginParameterGesture(const clap_id id) const
 {

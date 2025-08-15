@@ -42,11 +42,10 @@ class PluginHost : public Node, public BaseHost
     Q_PROPERTY(QSize guiSize READ guiSize NOTIFY guiSizeChanged)
     Q_PROPERTY(bool isFloatingWindowOpen READ isFloatingWindowOpen WRITE setIsFloatingWindowOpen NOTIFY isFloatingWindowOpenChanged)
     Q_PROPERTY(PluginQuickView* floatingWindow READ floatingWindow NOTIFY floatingWindowChanged)
-    QML_ELEMENT
 
 
   public:
-    explicit PluginHost(QObject* parent = nullptr);
+    explicit PluginHost(Node* parent);
     ~PluginHost() override;
     PluginHost(PluginHost&) = delete;
     PluginHost(PluginHost&&) = delete;
@@ -104,7 +103,7 @@ class PluginHost : public Node, public BaseHost
 
     void loadPluginState(const QString& stateAsBase64);
     [[nodiscard]] QJsonObject getState() const override;
-    void loadState(const QJsonObject& stateToLoad) const override;
+    void loadState(const QJsonObject& stateToLoad) override;
 
 
   signals:

@@ -41,7 +41,7 @@ Rectangle
             width: parent.width
             height: 260
 
-            model: channelStrip.plugins
+            model: channelStrip.nodes
 
             delegate: O.PluginSlot
             {

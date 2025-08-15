@@ -103,36 +103,11 @@ void AudioEngine::loadSession(const QString& path)
 
         addNewChannelStrip();
         const auto& channelStrip = m_channelStrips.back();
-
-        Status status;
-        status.isBypassed = jsChannel["isBypassed"].toBool();
-        channelStrip->status.store(status);
-        channelStrip->setOutputVolume(jsChannel["outputVolume"].toDouble());
-
-        for (const auto plugins = jsChannel["nodes"].toArray(); const auto& jsPluginRef : plugins)
-        {
-            const auto jsPlugin = jsPluginRef.toObject();
-
-            const auto pluginPath = jsPlugin["path"].toString();
-            const auto pluginIndex = jsPlugin["index"].toInt();
-            const auto pluginStateData = jsPlugin["stateData"].toString();
-
-            auto* plugin = new PluginHost;
-            PluginManager::instance()->load(*plugin, pluginPath, pluginIndex);
-            plugin->loadPluginState(pluginStateData);
-
-            Status pluginStatus;
-            pluginStatus.isBypassed = jsPlugin["isBypassed"].toBool();
-            plugin->status.store(pluginStatus);
-
-            channelStrip->nodes.push_back(plugin);
-        }
-
-        emit channelStrip->pluginsChanged();
+        channelStrip->loadState(jsChannel);
     }
 }
 
-QList<ChannelStrip*> AudioEngine::channelStrips() const
+QList<Node*> AudioEngine::channelStrips() const
 {
     return m_channelStrips;
 }
@@ -142,7 +117,7 @@ void AudioEngine::clearPluginsList()
     for (auto* channelStrip : m_channelStrips)
     {
         channelStrip->clearNodes();
-        emit channelStrip->pluginsChanged();
+        emit channelStrip->nodesChanged();
     }
 }
 
@@ -236,7 +211,11 @@ void AudioEngine::addNewChannelStrip()
     oldStatus.status = S::Stopped;
     m_status.store(oldStatus);
 
-    m_channelStrips.append(new ChannelStrip);
+    QJsonObject pluginStateJson;
+    pluginStateJson["type"] = "ChannelStrip";
+
+    auto* newChannelStrip = Node::create(nullptr, pluginStateJson);
+    m_channelStrips.append(newChannelStrip);
 
     oldStatus.status = curStatusStatus;
     m_status.store(oldStatus);
@@ -246,37 +225,37 @@ void AudioEngine::addNewChannelStrip()
 void AudioEngine::unload(PluginHost* pluginToUnload)
 {
     ChannelStrip* channelStripToChange = nullptr;
-    auto indexOfPluginToRemove = -1LL;
 
     for (auto* channelStrip : m_channelStrips)
     {
-        channelStripToChange = channelStrip;
-        indexOfPluginToRemove = channelStrip->nodes.indexOf(pluginToUnload);
+        if (!channelStrip->m_nodes.contains(pluginToUnload))
+            continue;
 
-        if (indexOfPluginToRemove >= 0)
-            break;
+        channelStripToChange = static_cast<ChannelStrip*>(channelStrip);
     }
 
-    if (!channelStripToChange || indexOfPluginToRemove < 0)
+    if (!channelStripToChange)
         return;
 
+    auto pluginStatus = pluginToUnload->status.load();
+    if (pluginStatus.status == S::ToBeDeleted)
+        return;
 
-    const auto oldStatus = m_status.load();
-    auto curStatus = m_status.load();
-    curStatus.status = S::Stopped;
-    m_status.store(curStatus);
+    ++channelStripToChange->pendingTopologyChanges;
 
-    channelStripToChange->nodes.remove(indexOfPluginToRemove);
+    pluginStatus.status = S::ToBeDeleted;
+    pluginToUnload->status.store(pluginStatus);
 
-    emit pluginHostRemoved(pluginToUnload);
-    emit channelStripToChange->pluginsChanged();
-
-    m_status = oldStatus;
-
-    QTimer::singleShot(900, this, [pluginToUnload]()
+    QTimer::singleShot(900, this, [channelStripToChange, pluginToUnload]()
     {
-        PluginManager::instance()->unload(*pluginToUnload);
-        delete pluginToUnload;
+        channelStripToChange->m_nodes.removeAll(pluginToUnload);
+
+        emit channelStripToChange->nodesChanged();
+
+        --channelStripToChange->pendingTopologyChanges;
+
+        qDebug() << "-> " << pluginToUnload;
+        pluginToUnload->deleteLater();
     });
 }
 
@@ -438,15 +417,13 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
         }
     }
 
-    for (unsigned int i = 0; i < frameCount; ++i)
-    {
-        engine->m_outputBuffer[0][i] = 0.0f;
-        engine->m_outputBuffer[1][i] = 0.0f;
-    }
+    std::memset(engine->m_outputBuffer[0], 0, frameCount * sizeof(float));
+    std::memset(engine->m_outputBuffer[1], 0, frameCount * sizeof(float));
 
-    for (auto* channelStrip : engine->m_channelStrips)
+    for (auto* node : engine->m_channelStrips)
     {
-        channelStrip->process();
+        node->process();
+        auto* channelStrip = static_cast<ChannelStrip*>(node);
 
         for (unsigned int i = 0; i < frameCount; ++i)
         {

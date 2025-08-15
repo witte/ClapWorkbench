@@ -7,11 +7,11 @@
 class ChannelStrip : public Node
 {
     Q_OBJECT
-    Q_PROPERTY(QList<Node*> plugins READ plugins NOTIFY pluginsChanged)
+    // Q_PROPERTY(QList<Node*> plugins READ plugins NOTIFY pluginsChanged)
     Q_PROPERTY(double outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
 
   public:
-    explicit ChannelStrip(QObject* parent = nullptr);
+    explicit ChannelStrip(Node* parent);
     ~ChannelStrip() override;
 
     void setPorts(int numInputs, float** inputs, int numOutputs, float** outputs) override;
@@ -25,18 +25,17 @@ class ChannelStrip : public Node
     void process() override;
 
     [[nodiscard]] QJsonObject getState() const override;
-    void loadState(const QJsonObject& stateToLoad) const override;
+    void loadState(const QJsonObject& stateToLoad) override;
 
-    [[nodiscard]] QList<Node*> plugins() const;
-
-    void clearNodes();
+    // [[nodiscard]] QList<Node*> plugins() const;
+    // void clearNodes();
 
     [[nodiscard]] double outputVolume() const;
     void setOutputVolume(double newOutputVolume);
 
 
   signals:
-    void pluginsChanged();
+    // void pluginsChanged();
     void pluginHostReloaded(PluginHost* pluginHost);
     void pluginHostRemoved(PluginHost* pluginHost);
 
@@ -54,5 +53,5 @@ class ChannelStrip : public Node
     unsigned int m_bufferSize = 4096;
     float* m_outputBuffer[2] = {nullptr, nullptr};
 
-    QList<Node*> nodes;
+    // QList<Node*> nodes;
 };

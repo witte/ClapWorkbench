@@ -9,7 +9,7 @@ MouseArea
 {
     id: control
 
-    property PluginHost modelData
+    property QtObject modelData
     property int buttonHeight: height + 1
 
     height: 21

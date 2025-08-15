@@ -3,7 +3,7 @@
 #include "QJsonArray"
 
 
-ChannelStrip::ChannelStrip(QObject* parent) : Node(parent)
+ChannelStrip::ChannelStrip(Node* parent) : Node(parent)
 {
     m_outputBuffer[0] = static_cast<float*>(std::calloc(1, m_bufferSize * 4));
     m_outputBuffer[1] = static_cast<float*>(std::calloc(1, m_bufferSize * 4));
@@ -20,7 +20,7 @@ ChannelStrip::~ChannelStrip()
 
 void ChannelStrip::setPorts(const int numInputs, float**, const int numOutputs, float**)
 {
-    for (auto* node : nodes)
+    for (auto* node : m_nodes)
     {
         node->setPorts(numInputs, m_outputBuffer, numOutputs, m_outputBuffer);
     }
@@ -36,7 +36,7 @@ void ChannelStrip::activate(const std::int32_t sampleRate, const std::int32_t bl
         m_outputBuffer[1][i] = 0.0f;
     }
 
-    for (auto* node : nodes)
+    for (auto* node : m_nodes)
     {
         node->activate(sampleRate, blockSize);
     }
@@ -44,13 +44,13 @@ void ChannelStrip::activate(const std::int32_t sampleRate, const std::int32_t bl
 
 void ChannelStrip::deactivate()
 {
-    for (auto* node: nodes)
+    for (auto* node: m_nodes)
         node->deactivate();
 }
 
 void ChannelStrip::startProcessing()
 {
-    for (auto* plugin : nodes)
+    for (auto* plugin : m_nodes)
     {
         if (plugin->status.load().status >= S::Stopped)
             plugin->startProcessing();
@@ -63,7 +63,7 @@ void ChannelStrip::startProcessing()
 
 void ChannelStrip::stopProcessing()
 {
-    for (auto* plugin : nodes)
+    for (auto* plugin : m_nodes)
         plugin->stopProcessing();
 
     auto curStatus = status.load();
@@ -73,18 +73,18 @@ void ChannelStrip::stopProcessing()
 
 void ChannelStrip::processNoteRawMidi(const int sampleOffset, const std::vector<unsigned char>& data)
 {
-    for (auto* plugin : nodes)
+    for (auto* plugin : m_nodes)
         plugin->processNoteRawMidi(sampleOffset, data);
 }
 
 void ChannelStrip::process()
 {
     auto curStatus = status.load();
-    if (curStatus.status == S::Inactive)
+    if (curStatus.status != S::Running || curStatus.isBypassed || pendingTopologyChanges > 0)
         return;
 
     const clap::helpers::EventList* lastPluginEventsOut = nullptr;
-    for (auto* plugin : nodes)
+    for (auto* plugin : m_nodes)
     {
         if (lastPluginEventsOut)
         {
@@ -151,12 +151,13 @@ void ChannelStrip::process()
 QJsonObject ChannelStrip::getState() const
 {
     QJsonObject state;
+    state["type"] = "ChannelStrip";
     state["name"] = m_name;
-    state["outputVolume"] = m_outputVolume.load();
     state["isBypassed"] = status.load().isBypassed;
+    state["outputVolume"] = m_outputVolume.load();
 
     QJsonArray jsonArray;
-    for (const auto* node : nodes)
+    for (const auto* node : m_nodes)
     {
         jsonArray.append(node->getState());
     }
@@ -165,22 +166,24 @@ QJsonObject ChannelStrip::getState() const
     return state;
 }
 
-void ChannelStrip::loadState(const QJsonObject& stateToLoad) const
+void ChannelStrip::loadState(const QJsonObject& stateToLoad)
 {
+    if (stateToLoad.isEmpty())
+        return;
 
-}
+    Status status_;
+    status_.isBypassed = stateToLoad["isBypassed"].toBool();
+    status.store(status_);
+    setOutputVolume(stateToLoad["outputVolume"].toDouble());
 
-QList<Node*> ChannelStrip::plugins() const
-{
-    return nodes;
-}
+    for (const auto plugins = stateToLoad["nodes"].toArray(); const auto& jsPluginRef : plugins)
+    {
+        const auto jsPlugin = jsPluginRef.toObject();
+        auto* plugin = Node::create(this, jsPlugin);
+        m_nodes.push_back(plugin);
+    }
 
-void ChannelStrip::clearNodes()
-{
-    for (const auto* node : nodes)
-        delete node;
-
-    nodes.clear();
+    emit nodesChanged();
 }
 
 double ChannelStrip::outputVolume() const
@@ -207,8 +210,8 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
 
     if (pluginToReload == nullptr)
     {
-        pluginToReload = new PluginHost;
-        nodes.push_back(pluginToReload);
+        pluginToReload = new PluginHost{this};
+        m_nodes.push_back(pluginToReload);
     }
 
     auto* m_pluginManager = PluginManager::instance();
@@ -223,7 +226,7 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
 
     pluginToReload->setIsByPassed(false);
 
-    emit pluginsChanged();
+    emit nodesChanged();
     emit pluginToReload->nameChanged();
     emit pluginToReload->hasNativeGUIChanged();
     emit pluginHostReloaded(pluginToReload);
@@ -237,10 +240,10 @@ void ChannelStrip::reorder(const int from, const int to)
 
     status.store(tmpStatus);
 
-    const auto element = nodes.takeAt(from);
-    nodes.insert(to, element);
+    const auto element = m_nodes.takeAt(from);
+    m_nodes.insert(to, element);
 
     status.store(oldStatus);
 
-    emit pluginsChanged();
+    emit nodesChanged();
 }

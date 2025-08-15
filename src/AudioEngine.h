@@ -19,7 +19,7 @@ class AudioEngine final : public QObject
     Q_OBJECT
     Q_PROPERTY(PluginManager* pluginManager READ pluginManager CONSTANT)
     Q_PROPERTY(bool isRunning READ isRunning WRITE setIsRunning NOTIFY isRunningChanged)
-    Q_PROPERTY(QList<ChannelStrip*> channelStrips READ channelStrips NOTIFY channelStripsChanged)
+    Q_PROPERTY(QList<Node*> channelStrips READ channelStrips NOTIFY channelStripsChanged)
     Q_PROPERTY(double bpm READ bpm WRITE setBpm NOTIFY bpmChanged)
     Q_PROPERTY(float outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
     Q_PROPERTY(bool isByPassed READ isByPassed WRITE setIsByPassed NOTIFY isByPassedChanged)
@@ -41,7 +41,7 @@ class AudioEngine final : public QObject
 
     void clearPluginsList();
 
-    [[nodiscard]] QList<ChannelStrip*> channelStrips() const;
+    [[nodiscard]] QList<Node*> channelStrips() const;
 
     [[nodiscard]] bool isRunning() const;
     void setIsRunning(bool newIsRunning);
@@ -72,7 +72,6 @@ class AudioEngine final : public QObject
 
     void pluginsChanged();
     void pluginHostReloaded(PluginHost* pluginHost);
-    void pluginHostRemoved(PluginHost* pluginHost);
 
     void isRunningChanged();
     void outputVolumeChanged();
@@ -104,7 +103,7 @@ class AudioEngine final : public QObject
 
     float* m_outputBuffer[2] = {nullptr, nullptr};
 
-    QList<ChannelStrip*> m_channelStrips;
+    QList<Node*> m_channelStrips;
 
     std::atomic<float> m_outputVolume = 0.3f;
 
