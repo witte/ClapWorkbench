@@ -3,54 +3,66 @@
 #include "QJsonArray"
 
 
-ChannelStrip::ChannelStrip(Node* parent) : Node(parent)
+ChannelStrip::ChannelStrip(Node* parent) : Node(parent, Type::ChannelStrip)
 {
-    m_outputBuffer[0] = static_cast<float*>(std::calloc(1, m_bufferSize * 4));
-    m_outputBuffer[1] = static_cast<float*>(std::calloc(1, m_bufferSize * 4));
+    buffer[0] = static_cast<float*>(std::calloc(1, m_bufferSize * 4));
+    buffer[1] = static_cast<float*>(std::calloc(1, m_bufferSize * 4));
 }
 
 ChannelStrip::~ChannelStrip()
 {
-    free(m_outputBuffer[0]);
-    free(m_outputBuffer[1]);
+    free(buffer[0]);
+    free(buffer[1]);
 
-    m_outputBuffer[0] = nullptr;
-    m_outputBuffer[1] = nullptr;
+    buffer[0] = nullptr;
+    buffer[1] = nullptr;
 }
 
 void ChannelStrip::setPorts(const int numInputs, float**, const int numOutputs, float**)
 {
     for (auto* node : m_nodes)
-    {
-        node->setPorts(numInputs, m_outputBuffer, numOutputs, m_outputBuffer);
-    }
+        node->setPorts(numInputs, buffer, numOutputs, buffer);
+
+    for (auto* node : m_channels)
+        node->setPorts(numInputs, buffer, numOutputs, buffer);
 }
 
 void ChannelStrip::activate(const std::int32_t sampleRate, const std::int32_t blockSize)
 {
     m_bufferSize = blockSize;
 
-    for (unsigned int i = 0; i < m_bufferSize; ++i)
-    {
-        m_outputBuffer[0][i] = 0.0f;
-        m_outputBuffer[1][i] = 0.0f;
-    }
+    std::memset(buffer[0], 0, m_bufferSize * sizeof(float));
+    std::memset(buffer[1], 0, m_bufferSize * sizeof(float));
 
     for (auto* node : m_nodes)
-    {
         node->activate(sampleRate, blockSize);
-    }
+
+    for (auto* node : m_channels)
+        node->activate(sampleRate, blockSize);
+
+    auto curStatus = status.load();
+    curStatus.status = S::Stopped;
+    status.store(curStatus);
 }
 
 void ChannelStrip::deactivate()
 {
     for (auto* node: m_nodes)
         node->deactivate();
+
+    for (auto* node: m_channels)
+        node->deactivate();
 }
 
 void ChannelStrip::startProcessing()
 {
     for (auto* plugin : m_nodes)
+    {
+        if (plugin->status.load().status >= S::Stopped)
+            plugin->startProcessing();
+    }
+
+    for (auto* plugin : m_channels)
     {
         if (plugin->status.load().status >= S::Stopped)
             plugin->startProcessing();
@@ -66,6 +78,9 @@ void ChannelStrip::stopProcessing()
     for (auto* plugin : m_nodes)
         plugin->stopProcessing();
 
+    for (auto* plugin : m_channels)
+        plugin->stopProcessing();
+
     auto curStatus = status.load();
     curStatus.status = S::Stopped;
     status.store(curStatus);
@@ -75,18 +90,19 @@ void ChannelStrip::processNoteRawMidi(const int sampleOffset, const std::vector<
 {
     for (auto* plugin : m_nodes)
         plugin->processNoteRawMidi(sampleOffset, data);
+
+    for (auto* plugin : m_channels)
+        plugin->processNoteRawMidi(sampleOffset, data);
 }
 
 void ChannelStrip::process()
 {
-    std::memset(m_outputBuffer[0], 0, m_bufferSize * sizeof(float));
-    std::memset(m_outputBuffer[1], 0, m_bufferSize * sizeof(float));
+    std::memset(buffer[0], 0, m_bufferSize * sizeof(float));
+    std::memset(buffer[1], 0, m_bufferSize * sizeof(float));
 
     auto curStatus = status.load();
     if (pendingTopologyChanges > 0)
-    {
         return;
-    }
 
     if (curStatus.status == S::Starting)
     {
@@ -95,6 +111,17 @@ void ChannelStrip::process()
     else if (curStatus.status != S::Running)
     {
         return;
+    }
+
+    for (auto* node : m_channels)
+    {
+        node->process();
+
+        for (unsigned int i = 0; i < m_bufferSize; ++i)
+        {
+            buffer[0][i] += node->buffer[0][i];
+            buffer[1][i] += node->buffer[1][i];
+        }
     }
 
     const clap::helpers::EventList* lastPluginEventsOut = nullptr;
@@ -122,8 +149,8 @@ void ChannelStrip::process()
 
     if (curStatus.isBypassed)
     {
-        std::memset(m_outputBuffer[0], 0, m_bufferSize * sizeof(float));
-        std::memset(m_outputBuffer[1], 0, m_bufferSize * sizeof(float));
+        std::memset(buffer[0], 0, m_bufferSize * sizeof(float));
+        std::memset(buffer[1], 0, m_bufferSize * sizeof(float));
 
         return;
     }
@@ -132,33 +159,8 @@ void ChannelStrip::process()
 
     for (unsigned int i = 0; i < m_bufferSize; ++i)
     {
-        m_outputBuffer[0][i] *= outputVolume;
-        m_outputBuffer[1][i] *= outputVolume;
-    }
-
-    static int warnVolumeError = 1;
-
-    for (unsigned int i = 0; i < m_bufferSize; ++i)
-    {
-        --warnVolumeError;
-
-        if (m_outputBuffer[0][i] > 1.0f || m_outputBuffer[1][i] > 1.0f)
-        {
-            if (warnVolumeError <= 0)
-            {
-                qWarning() << "trash at " << i << ": " << m_outputBuffer[0][i] << ", " << m_outputBuffer[1][i];
-                warnVolumeError = 24000;
-            }
-
-            std::memset(m_outputBuffer[0], 0, m_bufferSize * sizeof(float));
-            std::memset(m_outputBuffer[1], 0, m_bufferSize * sizeof(float));
-
-            curStatus.isBypassed = true;
-            status.store(curStatus);
-            emit isByPassedChanged();
-
-            break;
-        }
+        buffer[0][i] *= outputVolume;
+        buffer[1][i] *= outputVolume;
     }
 }
 
@@ -170,11 +172,15 @@ QJsonObject ChannelStrip::getState() const
     state["isBypassed"] = status.load().isBypassed;
     state["outputVolume"] = m_outputVolume.load();
 
+    QJsonArray channelsArray;
+    for (const auto* node : m_channels)
+        channelsArray.append(node->getState());
+
+    state["channels"] = channelsArray;
+
     QJsonArray jsonArray;
     for (const auto* node : m_nodes)
-    {
         jsonArray.append(node->getState());
-    }
 
     state["nodes"] = jsonArray;
     return state;
@@ -189,6 +195,14 @@ void ChannelStrip::loadState(const QJsonObject& stateToLoad)
     status_.isBypassed = stateToLoad["isBypassed"].toBool();
     status.store(status_);
     setOutputVolume(stateToLoad["outputVolume"].toDouble());
+    setName(stateToLoad["name"].toString());
+
+    for (const auto plugins = stateToLoad["channels"].toArray(); const auto& jsPluginRef : plugins)
+    {
+        const auto jsPlugin = jsPluginRef.toObject();
+        auto* plugin = Node::create(this, jsPlugin);
+        m_channels.push_back(plugin);
+    }
 
     for (const auto plugins = stateToLoad["nodes"].toArray(); const auto& jsPluginRef : plugins)
     {
@@ -244,7 +258,7 @@ void ChannelStrip::load(PluginHost* plugin, const QString& path, const int plugi
 
     if (status.load().status > S::Stopped)
     {
-        pluginToReload->setPorts(2, m_outputBuffer, 2, m_outputBuffer);
+        pluginToReload->setPorts(2, buffer, 2, buffer);
         pluginToReload->activate(48000, static_cast<int>(m_bufferSize));
 
         auto tmpStatus = status.load();

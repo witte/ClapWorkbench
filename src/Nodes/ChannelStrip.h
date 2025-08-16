@@ -7,6 +7,7 @@
 class ChannelStrip final : public Node
 {
     Q_OBJECT
+    Q_PROPERTY(QList<Node*> channels READ channels NOTIFY channelsChanged)
     Q_PROPERTY(double outputVolume READ outputVolume WRITE setOutputVolume NOTIFY outputVolumeChanged)
 
   public:
@@ -26,11 +27,14 @@ class ChannelStrip final : public Node
     [[nodiscard]] QJsonObject getState() const override;
     void loadState(const QJsonObject& stateToLoad) override;
 
+    [[nodiscard]] QList<Node*> channels() const { return m_channels;}
+
     [[nodiscard]] double outputVolume() const;
     void setOutputVolume(double newOutputVolume);
 
 
   signals:
+    void channelsChanged();
     void outputVolumeChanged();
 
 
@@ -43,8 +47,8 @@ class ChannelStrip final : public Node
 
 
   public:
+    QList<Node*> m_channels;
     std::atomic<double> m_outputVolume = 0.7f;
 
     unsigned int m_bufferSize = 4096;
-    float* m_outputBuffer[2] = {nullptr, nullptr};
 };

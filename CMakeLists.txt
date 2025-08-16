@@ -19,12 +19,12 @@ qt_standard_project_setup(REQUIRES 6.9.1)
 qt_add_executable(${PROJECT_NAME}
         src/Utils/RecursiveFileSystemWatcher.cpp
         src/Utils/RecursiveFileSystemWatcher.h
-        src/Nodes/PluginHost.h
-        src/Nodes/PluginHost.cpp
         src/Nodes/Node.h
         src/Nodes/Node.cpp
         src/Nodes/MidiFilePlayer.cpp
         src/Nodes/ChannelStrip.cpp
+        src/Nodes/PluginHost.h
+        src/Nodes/PluginHost.cpp
         src/PluginLibrary.h
         src/PluginLibrary.cpp
         src/PluginInfo.h
@@ -64,6 +64,7 @@ qt_add_qml_module(${PROJECT_NAME}
         qml/Components/Button.qml
         qml/Components/ComboBox.qml
         qml/Components/Fader.qml
+        qml/Components/MidiFilePlayer.qml
         qml/Components/GenericPluginGUI.qml
         qml/Components/LightButton.qml
         qml/Components/MainMenuWindow.qml

@@ -2,6 +2,7 @@
 #include <QJsonObject>
 #include "ChannelStrip.h"
 #include "PluginHost.h"
+#include "MidiFilePlayer.h"
 
 
 Node* Node::create(Node* parent, const QJsonObject& stateToLoad)
@@ -21,18 +22,30 @@ Node* Node::create(Node* parent, const QJsonObject& stateToLoad)
         return pluginHost;
     }
 
+    if (type == "MidiFilePlayer")
+    {
+        auto* node = new MidiFilePlayer(parent);
+        node->loadState(stateToLoad);
+        return node;
+    }
+
     qDebug() << "type of node not found:" << type;
     return nullptr;
 }
 
-Node::Node() : QObject{nullptr}
+Node::Node() : QObject{nullptr}, m_type{Type::Root}
 {}
 
-Node::Node(Node* parent) : QObject(parent)
+Node::Node(Node* parent, const Type type) : QObject(parent), m_type{type}
 {
 }
 
 Node::~Node() = default;
+
+Node::Type Node::type() const
+{
+    return m_type;
+}
 
 QString Node::name() const
 {

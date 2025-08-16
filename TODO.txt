@@ -1,6 +1,6 @@
 # Just a very rough list of features I'd like to have, in no particular order:
 
-
+- QML Repeater doesn't manage delegate lifetimes, we might need a custom recursive ListViewer
 -     clap::helpers::EventList m_evIn;
       clap::helpers::EventList m_evOut;
     is wrong, "clap::helpers::EventList" already has in and out event lists
@@ -9,7 +9,6 @@
     easier to get it to work for now
 - save bpm in session
 - add channelStrip pan, mute, solo
-
 
 - classes that inherit Node can behave in specific ways by doing things when child
     nodes are added/removed: a "channelStrip" will always put new nodes at its end,
@@ -53,18 +52,14 @@
 - select audio interface
 - mute input
 - maybe gain+pan could be a plugin?
-- gain clipping should mute the output, not set it to 0.0 volume
 - gain meters
-- have lots of channel strips
 - open native guis on a panel beside a channelstrip, kinda like RME's TotalMix
 - unit tests
 - how to end2end test?
 - detach AudioEngine from RtAudio/RtMidi
 - custom plugin slot ui's
-- use tracktion graph?
 - QML hot reloading
 - don't use Qt bindings on parameter knobs
-- don't crash when unload() is called and somewhere the plugin is used
 - atomic bitset for plugin status
 - atomic bitset for engine status
 - PluginLibrary should have its own map of loaded libraries, or
@@ -76,15 +71,23 @@
 - update Readme, dependencies should be set up automatically
 - update screenshot, floating plugin windows don't have native titlebar anymore
 - no native titlebar on the main window
-- I don't really like having all these "WindowContainer"s, guess I could instead make a borderless,
-  shadowless window for the embedded native gui that stays on top of the main window but doesn't
-  look separated from it
 
 
 DONE:
+- RECURSIVE CHANNELSTRIPS
+- add channelStrip name
+- have an arbitrary number of channel strips
+- don't crash when unload() is called and somewhere the plugin is used
+- gain clipping should mute the output, not set it to 0.0 volume
 - channelStrip volume is a parameter of it
 - save channelStrip volume in session
 - no titlebar on PluginBrowserWindow
 - non-native titlebar for floating plugin windows
 - how do point to the proper qml files - done: instantiate them from c++
 - fix PluginBrowserWindow disappearing - done: instantiate it from c++
+
+WON'T DO (at least for now)
+- use tracktion graph? - will try writing a graph processor
+- I don't really like having all these "WindowContainer"s, guess I could instead make a borderless,
+  shadowless window for the embedded native gui that stays on top of the main window but doesn't
+  look separated from it - embed window like RME's TotalMix

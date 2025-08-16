@@ -103,10 +103,11 @@ void AudioEngine::loadSession(const QString& path)
     {
         auto jsChannel = jsChannelRef.toObject();
 
-        addNewChannelStrip();
-        const auto& channelStrip = m_channelStrips.back();
-        channelStrip->loadState(jsChannel);
+        auto* newChannelStrip = Node::create(nullptr, jsChannel);
+        m_channelStrips.append(newChannelStrip);
     }
+
+    emit channelStripsChanged();
 }
 
 QList<Node*> AudioEngine::channelStrips() const
@@ -226,26 +227,21 @@ void AudioEngine::addNewChannelStrip()
 
 void AudioEngine::unload(Node* pluginToUnload)
 {
-    ChannelStrip* channelStripToChange = nullptr;
-    for (auto* channelStrip : m_channelStrips)
-    {
-        if (!channelStrip->m_nodes.contains(pluginToUnload))
-            continue;
-
-        channelStripToChange = dynamic_cast<ChannelStrip*>(channelStrip);
-    }
-
-    if (!channelStripToChange)
+    if (!pluginToUnload)
         return;
 
-    ++channelStripToChange->pendingTopologyChanges;
+    auto* parent = dynamic_cast<Node*>(pluginToUnload->parent());
+    if (!parent)
+        return;
 
-    QTimer::singleShot(700, this, [channelStripToChange, pluginToUnload]()
+    ++parent->pendingTopologyChanges;
+
+    QTimer::singleShot(700, this, [parent, pluginToUnload]()
     {
-        channelStripToChange->m_nodes.removeAll(pluginToUnload);
-        emit channelStripToChange->nodesChanged();
+        parent->m_nodes.removeAll(pluginToUnload);
+        emit parent->nodesChanged();
 
-        --channelStripToChange->pendingTopologyChanges;
+        --parent->pendingTopologyChanges;
         pluginToUnload->deleteLater();
     });
 }
@@ -388,12 +384,11 @@ int AudioEngine::audioCallback(void* outputBuffer, void*, const unsigned int fra
     for (auto* node : engine->m_channelStrips)
     {
         node->process();
-        auto* channelStrip = static_cast<ChannelStrip*>(node);
 
         for (unsigned int i = 0; i < frameCount; ++i)
         {
-            engine->m_outputBuffer[0][i] += channelStrip->m_outputBuffer[0][i];
-            engine->m_outputBuffer[1][i] += channelStrip->m_outputBuffer[1][i];
+            engine->m_outputBuffer[0][i] += node->buffer[0][i];
+            engine->m_outputBuffer[1][i] += node->buffer[1][i];
         }
     }
 

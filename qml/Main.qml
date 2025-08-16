@@ -16,6 +16,15 @@ Rectangle
 
     color: "#e7e6e1"
 
+    Component
+    {
+        // we need this to be here because we can't instantiate a ChannelStrip that
+        // can potentially also have ChannelStrip's in it
+        id: channelStripDelegate
+
+        ChannelStrip { node: modelData; height: parent?.height }
+    }
+
     MouseArea
     {
         anchors.fill: parent
@@ -51,9 +60,18 @@ Rectangle
         orientation: ListView.Horizontal
         layoutDirection: Qt.RightToLeft
 
-        delegate: ChannelStrip
+        boundsBehavior: Flickable.StopAtBounds
+        boundsMovement: Flickable.StopAtBounds
+
+        maximumFlickVelocity: 1
+
+        delegate: DelegateChooser
         {
-            channelStrip: modelData
+            id: chooser
+            role: "type"
+
+            DelegateChoice { roleValue: 1; delegate: channelStripDelegate }
+            DelegateChoice { roleValue: 3; O.MidiFilePlayer { node: modelData } }
         }
 
         footer: Item

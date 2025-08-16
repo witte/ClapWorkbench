@@ -29,6 +29,9 @@ class MidiFilePlayer : public Node
     [[nodiscard]] const QString& filePath() const;
     void setFilePath(const QString& newFilePath);
 
+    [[nodiscard]] QJsonObject getState() const override;
+    void loadState(const QJsonObject& stateToLoad) override;
+
 
   signals:
     void outputVolumeChanged();

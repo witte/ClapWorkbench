@@ -1,11 +1,15 @@
 #include "MidiFilePlayer.h"
 
 
-MidiFilePlayer::MidiFilePlayer(Node* parent) : Node(parent) {}
+MidiFilePlayer::MidiFilePlayer(Node* parent) : Node(parent, Type::MidiFilePlayer) {}
 
 MidiFilePlayer::~MidiFilePlayer() = default;
 
-void MidiFilePlayer::setPorts(int, float**, int, float**) {}
+void MidiFilePlayer::setPorts(int, float**, int, float** outputs)
+{
+    buffer[0] = outputs[0];
+    buffer[1] = outputs[1];
+}
 
 void MidiFilePlayer::activate(std::int32_t /*sampleRate*/, std::int32_t /*blockSize*/)
 {
@@ -38,3 +42,18 @@ const QString& MidiFilePlayer::filePath() const
 }
 
 void MidiFilePlayer::setFilePath(const QString& /*newFilePath*/) {}
+
+QJsonObject MidiFilePlayer::getState() const
+{
+    QJsonObject state;
+    state["type"] = "MidiFilePlayer";
+    state["name"] = m_name;
+    state["nodes"] = {};
+
+    return state;
+}
+
+void MidiFilePlayer::loadState(const QJsonObject& stateToLoad)
+{
+    m_name = stateToLoad["name"].toString();
+}

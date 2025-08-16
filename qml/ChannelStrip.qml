@@ -9,57 +9,158 @@ Rectangle
 {
     id: control
 
-    property QtObject channelStrip
+    property QtObject node
     property int insertHeight: 20
 
-    width: 151
-    height: parent.height
+    width: nodeChannels.visible? nodeChannels.width + 151 : 151
 
     color: "#404b56"
     border.color: "#30373f"
     border.width: 1
 
-    Rectangle
+    Row
     {
-        width: control.width
-        height: childrenRect.height + 4
-
+        id: nodeChannels
+        spacing: 0
+        layoutDirection: Qt.RightToLeft
         anchors.top: parent.top
-        anchors.topMargin: 14
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 10
 
-        clip: true
-
-        color: "#3b4750"
-        border.color: "#aA262A2E"
-        border.width: 1
-
-        O.ReorderableListView
+        Repeater
         {
-            id: pluginSlots
+            model: node.channels
 
+            delegate: DelegateChooser
+            {
+                id: chooser
+                role: "type"
+
+                DelegateChoice
+                {
+                    roleValue: 1
+                    delegate: channelStripDelegate
+                }
+
+                DelegateChoice
+                {
+                    roleValue: 3
+                    delegate: O.MidiFilePlayer
+                    {
+                        node: modelData
+                    }
+                }
+            }
+        }
+    }
+
+    Item
+    {
+        id: mainChannel
+
+        width: 151
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+
+        TextInput
+        {
+            id: input
+
+            y: 4
+            width: contentWidth
+            height: contentHeight
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            text: node.name
+
+            color: "#dddddd"
+
+            onEditingFinished: node.name = text
+        }
+
+        Rectangle
+        {
             width: parent.width
-            height: 260
+            height: childrenRect.height + 4
 
-            model: channelStrip.nodes
+            anchors.top: parent.top
+            anchors.topMargin: 24
+            anchors.horizontalCenter: parent.horizontalCenter
 
-            delegate: O.PluginSlot
+            clip: true
+
+            color: "#3b4750"
+            border.color: "#aA262A2E"
+            border.width: 1
+
+            O.ReorderableListView
             {
-                channelStrip: control.channelStrip
-                width: pluginSlots.width
-                height: 24
+                id: pluginSlots
+
+                width: parent.width
+                height: 260
+
+                model: node.nodes
+
+                delegate: O.PluginSlot
+                {
+                    channelStrip: control.node
+                    width: pluginSlots.width
+                    height: 24
+                }
+
+                onItemsReordered: (fromIndex, toIndex) =>
+                {
+                    control.node.reorder(fromIndex, toIndex)
+                }
             }
 
-            onItemsReordered: (fromIndex, toIndex) =>
+            O.LightButton
             {
-                control.channelStrip.reorder(fromIndex, toIndex)
+                y: pluginSlots.childrenRect.bottom + 4
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                bgHoveredColor: "#2f3338"
+                bgPressedColor: "#262A2E"
+
+                textColor: "#dddddd"
+                textPressedColor: "#bbbbbb"
+
+                font.pointSize: 22
+                textVerticalOffset: -2
+
+                text: "+"
+
+                onClicked: app.openPluginBrowserWindow(control.node, null)
             }
+        }
+
+        O.Fader
+        {
+            id: fader
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: 4
+
+            height: 200
+
+            from: 0.0
+            to: 2.0
+
+            value: node.outputVolume
+            onPositionChanged: node.outputVolume = value
+
+            orientation: Qt.Vertical
         }
 
         O.LightButton
         {
-            y: pluginSlots.childrenRect.bottom + 4
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.margins: 3
 
             bgHoveredColor: "#2f3338"
             bgPressedColor: "#262A2E"
@@ -67,52 +168,36 @@ Rectangle
             textColor: "#dddddd"
             textPressedColor: "#bbbbbb"
 
-            font.pointSize: 22
-            textVerticalOffset: -2
+            font.pointSize: 14
 
-            text: "+"
+            visible: node.channels.length > 0
+            text: checked? "<" : "v"
 
-            onClicked: app.openPluginBrowserWindow(control.channelStrip, null)
+            checked: nodeChannels.visible
+            onClicked: nodeChannels.visible = !nodeChannels.visible
+        }
+
+        O.LightButton
+        {
+            anchors.bottom: parent.bottom
+            anchors.right: parent.right
+            anchors.margins: 3
+
+            bgHoveredColor: "#2f3338"
+            bgPressedColor: "#262A2E"
+
+            textColor: "#dddddd"
+            textPressedColor: "#bbbbbb"
+
+            font.pointSize: 14
+
+            text: "M"
+
+            checked: node.isByPassed
+            onClicked: node.isByPassed = !node.isByPassed
         }
     }
 
-    O.Fader
-    {
-        id: fader
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 4
-
-        height: 200
-
-        from: 0.0
-        to: 2.0
-
-        value: channelStrip.outputVolume
-        onPositionChanged: channelStrip.outputVolume = value
-
-        orientation: Qt.Vertical
-    }
-
-    O.LightButton
-    {
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        anchors.margins: 3
-
-        bgHoveredColor: "#2f3338"
-        bgPressedColor: "#262A2E"
-
-        textColor: "#dddddd"
-        textPressedColor: "#bbbbbb"
-
-        font.pointSize: 14
-
-        text: "M"
-
-        checked: channelStrip.isByPassed
-        onClicked: channelStrip.isByPassed = !channelStrip.isByPassed
-    }
+    Component.onCompleted: console.log(`! ${node.name}`)
+    Component.onDestruction: console.log(`~ ${node.name}`)
 }

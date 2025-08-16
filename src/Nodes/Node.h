@@ -29,14 +29,26 @@ struct Status
 class Node : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(Type type READ type CONSTANT)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(bool isByPassed READ isByPassed WRITE setIsByPassed NOTIFY isByPassedChanged)
     Q_PROPERTY(QList<Node*> nodes READ nodes NOTIFY nodesChanged)
 
 
   public:
+    enum class Type
+    {
+        Root,
+        ChannelStrip,
+        PluginHost,
+        MidiFilePlayer,
+    };
+    Q_ENUM(Type)
+
     static Node* create(Node* parent, const QJsonObject& stateToLoad);
     ~Node() override;
+
+    [[nodiscard]] Type type() const;
 
     [[nodiscard]] QString name() const;
     void setName(const QString& name);
@@ -66,6 +78,7 @@ class Node : public QObject
     clap_process m_process{};
     clap::helpers::EventList m_evIn;
     clap::helpers::EventList m_evOut;
+    float* buffer[2] = {nullptr, nullptr};
 
 
   public slots:
@@ -81,8 +94,9 @@ class Node : public QObject
 
   protected:
     explicit Node();
-    explicit Node(Node* parent);
+    explicit Node(Node* parent, Type type);
 
+    const Type m_type;
     QString m_name;
 
 };

@@ -47,7 +47,7 @@ template class clap::helpers::PluginProxy<PluginHost_MH, PluginHost_CL>;
 
 
 PluginHost::PluginHost(Node* parent)
-    : Node(parent), BaseHost("Clap Workbench", "witte", "io.github.witte", "0.0.1")
+    : Node(parent, Type::PluginHost), BaseHost("Clap Workbench", "witte", "io.github.witte", "0.0.1")
 {
     threadType = ThreadType::MainThread;
 
@@ -166,6 +166,9 @@ void PluginHost::setPorts(const int numInputs, float** inputs, const int numOutp
     m_audioOut.data32 = outputs;
     m_audioOut.constant_mask = 0;
     m_audioOut.latency = 0;
+
+    buffer[0] = outputs[0];
+    buffer[1] = outputs[1];
 }
 
 void PluginHost::activate(const int32_t sample_rate, const int32_t blockSize)
